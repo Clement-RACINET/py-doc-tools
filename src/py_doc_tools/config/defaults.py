@@ -12,6 +12,9 @@ DEFAULT_API_NAV_END_MARKER = "# --- AUTOGEN_API_END ---"
 DEFAULT_FOLDER_INTRO_FILENAME = "__doc__.md"
 
 DEFAULT_COVERAGE_OUTPUT_DIR = "docs/coverage"
+DEFAULT_COVERAGE_PAGE_FILE = "docs/coverage-report.md"
+DEFAULT_COVERAGE_PAGE_TITLE = "Test coverage report"
+DEFAULT_COVERAGE_ENTRYPOINTS = ["covindex.html", "index.html"]
 
 DEFAULT_EXAMPLES_SOURCE_DIR = "examples"
 DEFAULT_EXAMPLES_OUTPUT_DIR = "docs/examples"

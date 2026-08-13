@@ -10,7 +10,10 @@ from py_doc_tools.config.defaults import (
     DEFAULT_API_NAV_END_MARKER,
     DEFAULT_API_NAV_START_MARKER,
     DEFAULT_API_OUTPUT_DIR,
+    DEFAULT_COVERAGE_ENTRYPOINTS,
     DEFAULT_COVERAGE_OUTPUT_DIR,
+    DEFAULT_COVERAGE_PAGE_FILE,
+    DEFAULT_COVERAGE_PAGE_TITLE,
     DEFAULT_DIAGNOSTICS_OUTPUT_DIR,
     DEFAULT_DIAGRAM_OUTPUT_FILE,
     DEFAULT_DOCS_DIR,
@@ -213,6 +216,16 @@ def _build_coverage_config(
     return CoverageConfig(
         package=_optional_string(table, "package", None),
         output_dir=_path(root, output_dir),
+        page_file=_path(
+            root,
+            _string(table, "page_file", DEFAULT_COVERAGE_PAGE_FILE),
+        ),
+        title=_string(table, "title", DEFAULT_COVERAGE_PAGE_TITLE),
+        entrypoints=_string_list(
+            table,
+            "entrypoints",
+            DEFAULT_COVERAGE_ENTRYPOINTS,
+        ),
         branch=_bool(table, "branch", default=True),
         quiet=_bool(table, "quiet", default=True),
     )

@@ -29,6 +29,11 @@ class CoverageConfig:
 
     package: str | None = None
     output_dir: Path | None = None
+    page_file: Path | None = None
+    title: str = "Test coverage report"
+    entrypoints: list[str] = field(
+        default_factory=lambda: ["covindex.html", "index.html"],
+    )
     branch: bool = True
     quiet: bool = True
 

@@ -88,3 +88,31 @@ directory = "docs/pixi-coverage"
 
     assert cfg.coverage is not None
     assert cfg.coverage.output_dir == tmp_path / "docs" / "pixi-coverage"
+
+
+def test_coverage_page_options_can_be_configured(tmp_path: Path) -> None:
+    """Read coverage page generation options."""
+    pyproject_toml = tmp_path / "pyproject.toml"
+    _ = pyproject_toml.write_text(
+        """
+[tool.py-doc-tools]
+enable_coverage = true
+
+[tool.py-doc-tools.coverage]
+package = "demo_package"
+page_file = "docs/custom-coverage-page.md"
+title = "Custom coverage title"
+entrypoints = ["index.html", "covindex.html"]
+
+[tool.coverage.html]
+directory = "docs/coverage"
+""",
+        encoding="utf-8",
+    )
+
+    cfg = load_config(tmp_path)
+
+    assert cfg.coverage is not None
+    assert cfg.coverage.page_file == tmp_path / "docs" / "custom-coverage-page.md"
+    assert cfg.coverage.title == "Custom coverage title"
+    assert cfg.coverage.entrypoints == ["index.html", "covindex.html"]
