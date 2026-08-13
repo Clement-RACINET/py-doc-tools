@@ -1,0 +1,96 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "py-doc-tools"
+version = "0.1.0"
+description = "Configurable MkDocs documentation generation tools for Python projects."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [
+    { name = "Clément RACINET" },
+]
+keywords = ["mkdocs", "documentation", "mkdocstrings", "dev-tools"]
+dependencies = []
+
+[project.optional-dependencies]
+diagram = ["pyvis>=0.3.2"]
+
+[project.scripts]
+pydocs = "py_doc_tools.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/py_doc_tools"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "A",
+    "ANN",
+    "ARG",
+    "B",
+    "BLE",
+    "C4",
+    "D",
+    "DTZ",
+    "E",
+    "EM",
+    "ERA",
+    "F",
+    "FA",
+    "FBT",
+    "I",
+    "ICN",
+    "INP",
+    "ISC",
+    "N",
+    "PERF",
+    "PIE",
+    "PLC",
+    "PLE",
+    "PLR",
+    "PLW",
+    "PT",
+    "PTH",
+    "RET",
+    "RUF",
+    "SIM",
+    "TCH",
+    "TRY",
+    "UP",
+    "W",
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+packages = ["py_doc_tools"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = [
+    "--cov=py_doc_tools",
+    "--cov-report=term-missing",
+    "--cov-report=xml",
+]
+
+
+[tool.coverage.run]
+branch = true
+source = ["py_doc_tools"]
+omit = [
+    "src/py_doc_tools/__main__.py",
+]

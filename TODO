@@ -1,0 +1,9 @@
+
+Planned features:
+
+- Examples documentation generation.
+- README generation.
+- TODO/FIXME documentation generation.
+- Ruff and MkDocs diagnostics extraction.
+- Optional source tag injection.
+- Class diagram generation.

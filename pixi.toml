@@ -1,0 +1,29 @@
+[workspace]
+channels = ["conda-forge"]
+platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
+
+[dependencies]
+python = ">=3.12,<3.13"
+pip = "*"
+
+[pypi-dependencies]
+py-doc-tools = { path = ".", editable = true }
+
+[feature.dev.dependencies]
+pytest = "*"
+pytest-cov = "*"
+ruff = "*"
+mypy = "*"
+mkdocs = "*"
+mkdocstrings = "*"
+mkdocstrings-python = "*"
+
+[environments]
+default = ["dev"]
+
+[tasks]
+fmt = "ruff format ."
+lint = "ruff check ."
+typecheck = "mypy src tests"
+tests = "pytest"
+check = { depends-on = ["fmt", "lint", "typecheck", "tests"] }
