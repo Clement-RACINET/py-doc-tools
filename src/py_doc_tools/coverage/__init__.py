@@ -1,4 +1,4 @@
-"""Coverage public API."""
+"""Coverage report generation public API."""
 
 from __future__ import annotations
 

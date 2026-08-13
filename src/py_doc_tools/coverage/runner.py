@@ -9,20 +9,14 @@ from py_doc_tools.core.exceptions import MissingConfigSectionError
 from py_doc_tools.core.subprocesses import run_command
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from py_doc_tools.config.model import DocToolsConfig
     from py_doc_tools.core.console import Console
 
 
 def run_coverage(cfg: DocToolsConfig, console: Console) -> int:
-    """Run pytest and generate an HTML coverage report.
-
-    Args:
-        cfg: Root tool configuration.
-        console: Console logger.
-
-    Returns:
-        Process exit code.
-    """
+    """Run pytest and generate an HTML coverage report."""
     if cfg.coverage is None:
         msg = "coverage"
         raise MissingConfigSectionError(msg)
@@ -34,13 +28,15 @@ def run_coverage(cfg: DocToolsConfig, console: Console) -> int:
         msg = "coverage.package"
         raise MissingConfigSectionError(msg)
 
+    output_dir = _coverage_output_dir(cfg)
+
     cmd = [
         sys.executable,
         "-m",
         "pytest",
         f"--cov={package}",
         "--cov-report",
-        f"html:{cov_cfg.output_dir.as_posix()}",
+        f"html:{output_dir.as_posix()}",
     ]
 
     if cov_cfg.branch:
@@ -53,8 +49,19 @@ def run_coverage(cfg: DocToolsConfig, console: Console) -> int:
     proc = run_command(cmd, cwd=cfg.project_root, check=False)
 
     if proc.returncode == 0:
-        console.ok(f"Coverage report generated: {cov_cfg.output_dir}")
+        console.ok(f"Coverage report generated: {output_dir}")
     else:
         console.warn("Coverage command returned a non-zero exit code.")
 
     return proc.returncode
+
+
+def _coverage_output_dir(cfg: DocToolsConfig) -> Path:
+    if cfg.coverage is None:
+        msg = "coverage"
+        raise MissingConfigSectionError(msg)
+
+    if cfg.coverage.output_dir is not None:
+        return cfg.coverage.output_dir
+
+    return cfg.docs_src_dir / "coverage"

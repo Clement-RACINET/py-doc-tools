@@ -1,4 +1,4 @@
-"""MkDocs navigation update helpers."""
+"""MkDocs API navigation update helpers."""
 
 from __future__ import annotations
 
@@ -12,11 +12,11 @@ if TYPE_CHECKING:
 
 
 def update_api_nav(cfg: DocToolsConfig, nav_block: str) -> None:
-    """Update the API navigation block in ``mkdocs.yml``.
+    """Update the generated API navigation block in mkdocs.yml.
 
     Args:
         cfg: Root tool configuration.
-        nav_block: Generated navigation block.
+        nav_block: Generated MkDocs navigation block.
     """
     if cfg.api is None:
         msg = "api"
@@ -27,5 +27,4 @@ def update_api_nav(cfg: DocToolsConfig, nav_block: str) -> None:
         start_marker=cfg.api.nav_start_marker,
         end_marker=cfg.api.nav_end_marker,
         new_block=nav_block,
-        preserve_marker_indent=True,
     )

@@ -1,4 +1,4 @@
-"""MkDocs public API."""
+"""MkDocs command runners public API."""
 
 from __future__ import annotations
 

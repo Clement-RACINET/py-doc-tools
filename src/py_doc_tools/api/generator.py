@@ -26,6 +26,20 @@ class ApiGenerationContext:
     console: Console
     overview_lines: list[str]
 
+    def __init__(
+        self,
+        *,
+        cfg: DocToolsConfig,
+        api_cfg: ApiConfig,
+        console: Console,
+        overview_lines: list[str],
+    ) -> None:
+        """Initialize API generation context."""
+        self.cfg = cfg
+        self.api_cfg = api_cfg
+        self.console = console
+        self.overview_lines = overview_lines
+
 
 def generate_api_docs(cfg: DocToolsConfig, console: Console) -> str:
     """Generate API Markdown pages and return a MkDocs nav block.

@@ -1,0 +1,54 @@
+py-doc-tools
+├── src
+│   └── py_doc_tools
+│       ├── api
+│       │   ├── __init__.py
+│       │   ├── generator.py
+│       │   └── nav.py
+│       ├── config
+│       │   ├── __init__.py
+│       │   ├── defaults.py
+│       │   ├── exceptions.py
+│       │   ├── loader.py
+│       │   └── model.py
+│       ├── core
+│       │   ├── __init__.py
+│       │   ├── console.py
+│       │   ├── exceptions.py
+│       │   ├── filesystem.py
+│       │   ├── markers.py
+│       │   ├── subprocesses.py
+│       │   └── titles.py
+│       ├── coverage
+│       │   ├── __init__.py
+│       │   └── runner.py
+│       ├── mkdocs
+│       │   ├── __init__.py
+│       │   └── runner.py
+│       ├── pipeline
+│       │   ├── __init__.py
+│       │   └── runner.py
+│       ├── __init__.py
+│       ├── __main__.py
+│       └── cli.py
+├── tests
+│   ├── test_api_branches.py
+│   ├── test_api_generator.py
+│   ├── test_cli.py
+│   ├── test_cli_branches.py
+│   ├── test_config_loader.py
+│   ├── test_config_loader_errors.py
+│   ├── test_console.py
+│   ├── test_coverage_runner.py
+│   ├── test_exceptions.py
+│   ├── test_filesystem.py
+│   ├── test_markers.py
+│   ├── test_mkdocs_runner.py
+│   ├── test_pipeline_runner.py
+│   └── test_subprocesses.py
+├── LICENSE
+├── pixi.lock
+├── pixi.toml
+├── pyproject.toml
+├── README.md
+└── TODO

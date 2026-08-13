@@ -3,233 +3,260 @@
 from __future__ import annotations
 
 import argparse
+import shutil
 from dataclasses import dataclass
 from pathlib import Path
-from typing import NoReturn
+from typing import TYPE_CHECKING, Protocol, cast
 
-from py_doc_tools.config import DocToolsConfig, load_config
+from py_doc_tools.config import load_config
 from py_doc_tools.core.console import Console
-from py_doc_tools.core.filesystem import remove_dir
-from py_doc_tools.mkdocs import run_mkdocs_build, run_mkdocs_serve
-from py_doc_tools.pipeline import generate_all, generate_api, generate_coverage
+from py_doc_tools.diagnostics.generator import generate_diagnostics_docs
+from py_doc_tools.diagrams.generator import generate_class_diagram_docs
+from py_doc_tools.examples.generator import generate_examples_docs
+from py_doc_tools.mkdocs.runner import run_mkdocs_build, run_mkdocs_serve
+from py_doc_tools.pipeline.runner import (
+    generate_all,
+    generate_api,
+    generate_coverage,
+)
+from py_doc_tools.readme.generator import generate_readme_docs
+from py_doc_tools.tags.injector import inject_source_tags
+from py_doc_tools.todo.generator import generate_todo_docs
+
+if TYPE_CHECKING:
+    from pathlib import Path as PathType
+
+    from py_doc_tools.config.model import DocToolsConfig
+
+
+UNKNOWN_COMMAND_MESSAGE = "Unknown command"
+NO_GENERATION_TARGET_MESSAGE = "No generation target selected"
+UNKNOWN_MKDOCS_COMMAND_MESSAGE = "Unknown mkdocs command"
+UNKNOWN_CLEAN_COMMAND_MESSAGE = "Unknown clean command"
+API_CONFIG_MISSING_MESSAGE = "API configuration is missing"
 
 
 @dataclass(frozen=True, slots=True)
 class CliArgs:
     """Typed CLI arguments."""
 
-    root: Path
-    verbose: bool
-    command: str
-    generate_all: bool
-    generate_api: bool
-    generate_coverage: bool
-    mkdocs_command: str | None
-    strict: bool
-    clean_command: str | None
+    root: str | PathType = "."
+    verbose: bool = False
+    command: str | None = None
+
+    generate_all: bool = False
+    generate_api: bool = False
+    generate_coverage: bool = False
+
+    all: bool = False
+    api: bool = False
+    coverage: bool = False
+    examples: bool = False
+    readme: bool = False
+    todo: bool = False
+    diagnostics: bool = False
+    tags: bool = False
+    diagrams: bool = False
+
+    mkdocs_command: str | None = None
+    strict: bool = False
+
+    clean_command: str | None = None
+    target: str | None = None
 
 
-def main(argv: list[str] | None = None) -> None:
-    """Run the py-doc-tools CLI.
+class GenerateCommand(Protocol):
+    """Callable protocol for generate commands."""
 
-    Args:
-        argv: Optional argument list.
-    """
-    parser = build_parser()
+    def __call__(self, cfg: DocToolsConfig, console: Console) -> int | None:
+        """Run a generate command."""
+        raise NotImplementedError
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Run the py-doc-tools CLI."""
+    parser = _build_parser()
     namespace = parser.parse_args(argv)
-    args = _parse_namespace(namespace)
+    args = _namespace_to_args(namespace)
 
-    cfg = load_config(args.root)
-
+    cfg = load_config(Path(args.root).resolve())
     console = Console(verbose=args.verbose or cfg.verbose)
-    console.configure()
 
-    try:
-        dispatch(args, cfg, console)
-    except Exception as exc:
-        console.error(str(exc))
-        raise SystemExit(1) from exc
+    result = dispatch(args, cfg, console)
+    return 0 if result is None else result
 
 
-def build_parser() -> argparse.ArgumentParser:
-    """Build the argument parser."""
-    parser = argparse.ArgumentParser(
-        prog="pydocs",
-        description="Configurable MkDocs documentation tooling.",
-    )
-    _ = parser.add_argument(
-        "--root",
-        default=".",
-        help="Project root directory.",
-    )
+def dispatch(
+    args: CliArgs,
+    cfg: DocToolsConfig,
+    console: Console,
+) -> int | None:
+    """Dispatch parsed CLI arguments."""
+    if args.command == "generate":
+        return _run_generate(args, cfg, console)
+
+    if args.command == "mkdocs":
+        _run_mkdocs(args, cfg, console)
+
+    if args.command == "clean":
+        return _run_clean(args, cfg, console)
+
+    msg = UNKNOWN_COMMAND_MESSAGE
+    raise SystemExit(msg)
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(prog="pydocs")
+    _ = parser.add_argument("--root", default=".", help="Project root directory.")
     _ = parser.add_argument(
         "--verbose",
         action="store_true",
         help="Enable verbose output.",
     )
 
-    subparsers = parser.add_subparsers(dest="command", required=True)
+    subparsers = parser.add_subparsers(dest="command")
 
-    generate = subparsers.add_parser("generate", help="Generate documentation assets.")
+    generate = subparsers.add_parser(
+        "generate",
+        help="Generate documentation artifacts.",
+    )
     generate_group = generate.add_mutually_exclusive_group(required=True)
-    _ = generate_group.add_argument(
-        "--all",
-        action="store_true",
-        dest="generate_all",
-        help="Run all enabled generators.",
-    )
-    _ = generate_group.add_argument(
-        "--api",
-        action="store_true",
-        dest="generate_api",
-        help="Generate API docs.",
-    )
-    _ = generate_group.add_argument(
-        "--coverage",
-        action="store_true",
-        dest="generate_coverage",
-        help="Generate coverage report.",
-    )
+    _ = generate_group.add_argument("--all", action="store_true")
+    _ = generate_group.add_argument("--api", action="store_true")
+    _ = generate_group.add_argument("--coverage", action="store_true")
+    _ = generate_group.add_argument("--examples", action="store_true")
+    _ = generate_group.add_argument("--readme", action="store_true")
+    _ = generate_group.add_argument("--todo", action="store_true")
+    _ = generate_group.add_argument("--diagnostics", action="store_true")
+    _ = generate_group.add_argument("--tags", action="store_true")
+    _ = generate_group.add_argument("--diagrams", action="store_true")
 
     mkdocs = subparsers.add_parser("mkdocs", help="Run MkDocs commands.")
-    mkdocs_sub = mkdocs.add_subparsers(dest="mkdocs_command", required=True)
-
-    build = mkdocs_sub.add_parser("build", help="Run mkdocs build.")
-    _ = build.add_argument(
-        "--strict",
-        action="store_true",
-        help="Run mkdocs build --strict.",
+    mkdocs_subparsers = mkdocs.add_subparsers(
+        dest="mkdocs_command",
+        required=True,
     )
 
-    _ = mkdocs_sub.add_parser("serve", help="Run mkdocs serve.")
+    mkdocs_build = mkdocs_subparsers.add_parser(
+        "build",
+        help="Build MkDocs site.",
+    )
+    _ = mkdocs_build.add_argument("--strict", action="store_true")
 
-    clean = subparsers.add_parser("clean", help="Clean generated assets.")
-    clean_sub = clean.add_subparsers(dest="clean_command", required=True)
-    _ = clean_sub.add_parser("api", help="Clean generated API directory.")
+    _ = mkdocs_subparsers.add_parser("serve", help="Serve MkDocs site.")
+
+    clean = subparsers.add_parser("clean", help="Clean generated artifacts.")
+    _ = clean.add_argument("target", choices=["api"], help="Cleanup target.")
 
     return parser
 
 
-def dispatch(args: CliArgs, cfg: DocToolsConfig, console: Console) -> None:
-    """Dispatch a parsed command."""
-    if args.command == "generate":
-        _dispatch_generate(args, cfg, console)
-        return
+def _namespace_to_args(namespace: argparse.Namespace) -> CliArgs:
+    raw = cast("dict[str, object]", vars(namespace))
 
-    if args.command == "mkdocs":
-        _dispatch_mkdocs(args, cfg, console)
-        return
+    all_enabled = _bool_arg(raw, "all")
+    api_enabled = _bool_arg(raw, "api")
+    coverage_enabled = _bool_arg(raw, "coverage")
 
-    if args.command == "clean":
-        _dispatch_clean(args, cfg, console)
-        return
+    return CliArgs(
+        root=_str_arg(raw, "root", "."),
+        verbose=_bool_arg(raw, "verbose"),
+        command=_optional_str_arg(raw, "command"),
+        generate_all=all_enabled,
+        generate_api=api_enabled,
+        generate_coverage=coverage_enabled,
+        all=all_enabled,
+        api=api_enabled,
+        coverage=coverage_enabled,
+        examples=_bool_arg(raw, "examples"),
+        readme=_bool_arg(raw, "readme"),
+        todo=_bool_arg(raw, "todo"),
+        diagnostics=_bool_arg(raw, "diagnostics"),
+        tags=_bool_arg(raw, "tags"),
+        diagrams=_bool_arg(raw, "diagrams"),
+        mkdocs_command=_optional_str_arg(raw, "mkdocs_command"),
+        strict=_bool_arg(raw, "strict"),
+        target=_optional_str_arg(raw, "target"),
+        clean_command=_optional_str_arg(raw, "target"),
+    )
 
-    _die(f"Unknown command: {args.command}")
 
-
-def _dispatch_generate(
+def _run_generate(
     args: CliArgs,
     cfg: DocToolsConfig,
     console: Console,
-) -> None:
-    if args.generate_all:
-        generate_all(cfg, console)
-        return
+) -> int | None:
+    commands: list[tuple[bool, GenerateCommand]] = [
+        (args.all or args.generate_all, generate_all),
+        (args.api or args.generate_api, generate_api),
+        (args.coverage or args.generate_coverage, generate_coverage),
+        (args.examples, generate_examples_docs),
+        (args.readme, generate_readme_docs),
+        (args.todo, generate_todo_docs),
+        (args.diagnostics, generate_diagnostics_docs),
+        (args.tags, inject_source_tags),
+        (args.diagrams, generate_class_diagram_docs),
+    ]
 
-    if args.generate_api:
-        generate_api(cfg, console)
-        return
+    for enabled, command in commands:
+        if enabled:
+            return command(cfg, console)
 
-    if args.generate_coverage:
-        generate_coverage(cfg, console)
-        return
-
-    _die("No generation target selected.")
+    msg = NO_GENERATION_TARGET_MESSAGE
+    raise SystemExit(msg)
 
 
-def _dispatch_mkdocs(
+def _run_mkdocs(
     args: CliArgs,
     cfg: DocToolsConfig,
     console: Console,
 ) -> None:
     if args.mkdocs_command == "build":
-        code = run_mkdocs_build(cfg, console, strict=args.strict)
-        raise SystemExit(code)
+        raise SystemExit(run_mkdocs_build(cfg, console, strict=args.strict))
 
     if args.mkdocs_command == "serve":
-        code = run_mkdocs_serve(cfg, console)
-        raise SystemExit(code)
+        raise SystemExit(run_mkdocs_serve(cfg, console))
 
-    _die(f"Unknown mkdocs command: {args.mkdocs_command}")
+    msg = UNKNOWN_MKDOCS_COMMAND_MESSAGE
+    raise SystemExit(msg)
 
 
-def _dispatch_clean(
+def _run_clean(
     args: CliArgs,
     cfg: DocToolsConfig,
     console: Console,
-) -> None:
-    if args.clean_command == "api":
-        if cfg.api is None:
-            _die("API configuration is missing.")
+) -> int | None:
+    target = args.target or args.clean_command
 
-        remove_dir(cfg.api.output_dir)
-        console.ok(f"Removed API directory: {cfg.api.output_dir}")
-        return
+    if target != "api":
+        msg = UNKNOWN_CLEAN_COMMAND_MESSAGE
+        raise SystemExit(msg)
 
-    _die(f"Unknown clean command: {args.clean_command}")
+    if cfg.api is None:
+        msg = API_CONFIG_MISSING_MESSAGE
+        raise SystemExit(msg)
 
+    if cfg.api.output_dir.exists():
+        shutil.rmtree(cfg.api.output_dir)
 
-def _parse_namespace(namespace: argparse.Namespace) -> CliArgs:
-    root_raw = _get_str_attr(namespace, "root", ".")
-    command = _get_str_attr(namespace, "command", "")
-    mkdocs_command = _get_optional_str_attr(namespace, "mkdocs_command")
-    clean_command = _get_optional_str_attr(namespace, "clean_command")
-
-    return CliArgs(
-        root=Path(root_raw).resolve(),
-        verbose=_get_bool_attr(namespace, "verbose"),
-        command=command,
-        generate_all=_get_bool_attr(namespace, "generate_all"),
-        generate_api=_get_bool_attr(namespace, "generate_api"),
-        generate_coverage=_get_bool_attr(namespace, "generate_coverage"),
-        mkdocs_command=mkdocs_command,
-        strict=_get_bool_attr(namespace, "strict"),
-        clean_command=clean_command,
-    )
-
-
-def _get_str_attr(
-    namespace: argparse.Namespace,
-    name: str,
-    default: str,
-) -> str:
-    value = getattr(namespace, name, default)
-
-    if isinstance(value, str):
-        return value
-
-    return default
-
-
-def _get_optional_str_attr(
-    namespace: argparse.Namespace,
-    name: str,
-) -> str | None:
-    value = getattr(namespace, name, None)
-
-    if value is None:
-        return None
-
-    if isinstance(value, str):
-        return value
-
+    console.ok(f"Removed API documentation directory: {cfg.api.output_dir}")
     return None
 
 
-def _get_bool_attr(namespace: argparse.Namespace, name: str) -> bool:
-    value = getattr(namespace, name, False)
+def _bool_arg(raw: dict[str, object], key: str) -> bool:
+    value = raw.get(key, False)
     return value if isinstance(value, bool) else False
 
 
-def _die(message: str) -> NoReturn:
-    raise SystemExit(message)
+def _str_arg(raw: dict[str, object], key: str, default: str) -> str:
+    value = raw.get(key, default)
+    return value if isinstance(value, str) else default
+
+
+def _optional_str_arg(raw: dict[str, object], key: str) -> str | None:
+    value = raw.get(key)
+    return value if isinstance(value, str) else None
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

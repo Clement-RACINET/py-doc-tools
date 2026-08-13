@@ -18,6 +18,9 @@ mkdocs = "*"
 mkdocstrings = "*"
 mkdocstrings-python = "*"
 
+[feature.dev.pypi-dependencies]
+py-structure-tools = { git = "https://gitlab.com/dev-tools-cr/python/py-structure-tools.git", branch = "main" }
+
 [environments]
 default = ["dev"]
 
@@ -27,3 +30,9 @@ lint = "ruff check ."
 typecheck = "mypy src tests"
 tests = "pytest"
 check = { depends-on = ["fmt", "lint", "typecheck", "tests"] }
+
+
+pystructure = "pystructure"
+structure = "pystructure tree --root ."
+structure-export = "pystructure export --root ."
+structure-export-all = "pystructure export --root . --formats all"
