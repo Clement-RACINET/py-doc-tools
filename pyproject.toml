@@ -20,6 +20,7 @@ diagram = ["pyvis>=0.3.2"]
 
 [project.scripts]
 pydocs = "py_doc_tools.cli:main"
+py-doc-tools = "py_doc_tools.cli:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/py_doc_tools"]

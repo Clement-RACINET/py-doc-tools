@@ -78,7 +78,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/yaml-0.2.5-h280c20c_3.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/zipp-4.1.0-pyhcf101f3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/zstd-1.5.7-hb78ec9c_7.conda
-      - pypi: git+https://gitlab.com/dev-tools-cr/python/py-structure-tools.git?branch=main#95aab0ab7e03b8b7f8a9b4e88c0a4d8dfbddb538
+      - pypi: git+https://gitlab.com/dev-tools-cr/python/py-structure-tools.git?branch=main#aeeac089bae105e2fc840c5421010b8f00f31db6
       - pypi: ./
       osx-64:
       - conda: https://conda.anaconda.org/conda-forge/noarch/_python_abi3_support-1.0-hd8ed1ab_3.conda
@@ -142,7 +142,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/wheel-0.48.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-64/yaml-0.2.5-h4132b18_3.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/zipp-4.1.0-pyhcf101f3_0.conda
-      - pypi: git+https://gitlab.com/dev-tools-cr/python/py-structure-tools.git?branch=main#95aab0ab7e03b8b7f8a9b4e88c0a4d8dfbddb538
+      - pypi: git+https://gitlab.com/dev-tools-cr/python/py-structure-tools.git?branch=main#aeeac089bae105e2fc840c5421010b8f00f31db6
       - pypi: ./
       osx-arm64:
       - conda: https://conda.anaconda.org/conda-forge/noarch/_python_abi3_support-1.0-hd8ed1ab_3.conda
@@ -207,7 +207,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/wheel-0.48.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/yaml-0.2.5-h925e9cb_3.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/zipp-4.1.0-pyhcf101f3_0.conda
-      - pypi: git+https://gitlab.com/dev-tools-cr/python/py-structure-tools.git?branch=main#95aab0ab7e03b8b7f8a9b4e88c0a4d8dfbddb538
+      - pypi: git+https://gitlab.com/dev-tools-cr/python/py-structure-tools.git?branch=main#aeeac089bae105e2fc840c5421010b8f00f31db6
       - pypi: ./
       win-64:
       - conda: https://conda.anaconda.org/conda-forge/noarch/_python_abi3_support-1.0-hd8ed1ab_3.conda
@@ -273,7 +273,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/noarch/wheel-0.48.0-pyhd8ed1ab_0.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/yaml-0.2.5-h6a83c73_3.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/zipp-4.1.0-pyhcf101f3_0.conda
-      - pypi: git+https://gitlab.com/dev-tools-cr/python/py-structure-tools.git?branch=main#95aab0ab7e03b8b7f8a9b4e88c0a4d8dfbddb538
+      - pypi: git+https://gitlab.com/dev-tools-cr/python/py-structure-tools.git?branch=main#aeeac089bae105e2fc840c5421010b8f00f31db6
       - pypi: ./
 packages:
 - conda: https://conda.anaconda.org/conda-forge/linux-64/_openmp_mutex-4.5-20_gnu.conda
@@ -1406,12 +1406,12 @@ packages:
 - pypi: ./
   name: py-doc-tools
   version: 0.1.0
-  sha256: 36ef6e45e43c263966e9a8176c59de0cbe5cb2672877d1523634120dc740c086
+  sha256: 08b1e22d38cc077e5a9fe6be1afbe5628d0a7555a2d4925c312b0cb249f4ffd0
   requires_dist:
   - pyvis>=0.3.2 ; extra == 'diagram'
   requires_python: '>=3.12'
   editable: true
-- pypi: git+https://gitlab.com/dev-tools-cr/python/py-structure-tools.git?branch=main#95aab0ab7e03b8b7f8a9b4e88c0a4d8dfbddb538
+- pypi: git+https://gitlab.com/dev-tools-cr/python/py-structure-tools.git?branch=main#aeeac089bae105e2fc840c5421010b8f00f31db6
   name: py-structure-tools
   version: 0.1.0
   requires_python: '>=3.11'
