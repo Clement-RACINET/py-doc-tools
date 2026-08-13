@@ -51,32 +51,24 @@ TomlTable = dict[str, object]
 
 
 def load_config(project_root: Path | None = None) -> DocToolsConfig:
-    """Load py-doc-tools configuration from pyproject.toml."""
+    """Load py-doc-tools configuration from project TOML files."""
     root = Path.cwd() if project_root is None else project_root
     resolved_root = root.resolve()
-    pyproject_path = resolved_root / "pyproject.toml"
 
-    raw: TomlTable = {}
-    if pyproject_path.exists():
-        with pyproject_path.open("rb") as file:
-            loaded = tomllib.load(file)
-        raw = _as_table(loaded, "pyproject.toml")
-
-    tool = _table_value(raw, "tool", {})
-
-    if not isinstance(tool, dict):
-        tool_table: TomlTable = {}
-    else:
-        typed_tool = cast("dict[object, object]", tool)
-        tool_table = _as_table(typed_tool, "tool")
+    tool_table = _load_merged_tool_table(resolved_root)
 
     config_raw = _table_value(tool_table, "py-doc-tools", {})
     config_table = _as_table(config_raw, "tool.py-doc-tools")
 
-    return _build_config(resolved_root, config_table)
+    return _build_config(resolved_root, config_table, tool_table)
 
 
-def _build_config(root: Path, table: TomlTable) -> DocToolsConfig:
+def _build_config(
+    root: Path,
+    table: TomlTable,
+    tool_table: TomlTable | None = None,
+) -> DocToolsConfig:
+    full_tool_table = {} if tool_table is None else tool_table
     api_table = _subtable(table, "api")
     coverage_table = _subtable(table, "coverage")
     examples_table = _subtable(table, "examples")
@@ -110,7 +102,7 @@ def _build_config(root: Path, table: TomlTable) -> DocToolsConfig:
         else None
     )
     coverage_config = (
-        _build_coverage_config(root, coverage_table)
+        _build_coverage_config(root, coverage_table, full_tool_table)
         if enable_coverage or has_coverage_table
         else None
     )
@@ -207,13 +199,20 @@ def _build_api_config(root: Path, table: TomlTable) -> ApiConfig:
     )
 
 
-def _build_coverage_config(root: Path, table: TomlTable) -> CoverageConfig:
+def _build_coverage_config(
+    root: Path,
+    table: TomlTable,
+    tool_table: TomlTable,
+) -> CoverageConfig:
+    output_dir = _string(
+        table,
+        "output_dir",
+        _coverage_html_directory(tool_table) or DEFAULT_COVERAGE_OUTPUT_DIR,
+    )
+
     return CoverageConfig(
         package=_optional_string(table, "package", None),
-        output_dir=_path(
-            root,
-            _string(table, "output_dir", DEFAULT_COVERAGE_OUTPUT_DIR),
-        ),
+        output_dir=_path(root, output_dir),
         branch=_bool(table, "branch", default=True),
         quiet=_bool(table, "quiet", default=True),
     )
@@ -345,6 +344,66 @@ def _build_diagrams_config(root: Path, table: TomlTable) -> DiagramsConfig:
         exclude_files=_string_list(table, "exclude_files", []),
         include_private=_bool(table, "include_private", default=False),
     )
+
+
+def _load_merged_tool_table(root: Path) -> TomlTable:
+    """Load and merge [tool] tables from pyproject.toml and pixi.toml."""
+    merged: TomlTable = {}
+
+    for filename in ("pyproject.toml", "pixi.toml"):
+        path = root / filename
+        if not path.exists():
+            continue
+
+        with path.open("rb") as file:
+            loaded = cast("dict[object, object]", tomllib.load(file))
+
+        raw = _as_table(loaded, filename)
+        tool = _table_value(raw, "tool", {})
+
+        if not isinstance(tool, dict):
+            continue
+
+        typed_tool = cast("dict[object, object]", tool)
+        tool_table = _as_table(typed_tool, f"{filename}.tool")
+        _deep_update(merged, tool_table)
+
+    return merged
+
+
+def _deep_update(target: TomlTable, source: TomlTable) -> None:
+    """Recursively merge source into target."""
+    for key, value in source.items():
+        current = target.get(key)
+
+        if isinstance(current, dict) and isinstance(value, dict):
+            current_table = cast("TomlTable", current)
+            value_table = cast("TomlTable", value)
+            _deep_update(current_table, value_table)
+            target[key] = current_table
+            continue
+
+        target[key] = value
+
+
+def _coverage_html_directory(tool_table: TomlTable) -> str | None:
+    """Read [tool.coverage.html].directory from the merged tool table."""
+    coverage_raw = _table_value(tool_table, "coverage", {})
+    coverage_table = _as_table(coverage_raw, "tool.coverage")
+
+    html_raw = _table_value(coverage_table, "html", {})
+    html_table = _as_table(html_raw, "tool.coverage.html")
+
+    directory = _table_value(html_table, "directory", None)
+
+    if directory is None:
+        return None
+
+    if not isinstance(directory, str):
+        msg = "tool.coverage.html.directory"
+        raise ConfigTypeError(msg, "a string")
+
+    return directory
 
 
 def _subtable(table: TomlTable, key: str) -> TomlTable:
