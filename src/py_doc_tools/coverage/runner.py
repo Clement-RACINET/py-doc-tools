@@ -70,7 +70,9 @@ def generate_coverage_page(cfg: DocToolsConfig, console: Console) -> Path:
     output_dir = _coverage_output_dir(cfg)
     page_file = _coverage_page_file(cfg)
     entrypoint = _find_coverage_entrypoint(output_dir, cfg.coverage.entrypoints)
-    iframe_src = _mkdocs_relative_url(page_file, entrypoint)
+
+    iframe_src = _mkdocs_runtime_relative_url(page_file, entrypoint)
+    markdown_link = _mkdocs_source_relative_url(page_file, entrypoint)
 
     page_file.parent.mkdir(parents=True, exist_ok=True)
 
@@ -84,7 +86,7 @@ def generate_coverage_page(cfg: DocToolsConfig, console: Console) -> Path:
   title="Coverage Report">
 </iframe>
 
-[Open coverage report in a new page]({iframe_src})
+[Open coverage report in a new page]({markdown_link})
 """
 
     _ = page_file.write_text(content, encoding="utf-8")
@@ -134,14 +136,30 @@ def _find_coverage_entrypoint(
     raise FileNotFoundError(message)
 
 
-def _mkdocs_relative_url(page_file: Path, target_file: Path) -> str:
-    """Build a relative URL from a MkDocs page to a static HTML target.
+def _mkdocs_source_relative_url(page_file: Path, target_file: Path) -> str:
+    """Build a source-relative URL for MkDocs Markdown link validation.
+
+    MkDocs validates Markdown links relative to the source Markdown file
+    location inside the docs directory.
+
+    Example:
+        docs/coverage-report.md -> docs/coverage/index.html
+        gives: coverage/index.html
+    """
+    return posixpath.relpath(
+        target_file.as_posix(),
+        start=page_file.parent.as_posix(),
+    )
+
+
+def _mkdocs_runtime_relative_url(page_file: Path, target_file: Path) -> str:
+    """Build a runtime-relative URL for raw HTML elements.
 
     MkDocs serves a Markdown page like ``coverage-report.md`` as
     ``coverage-report/index.html`` when directory URLs are enabled.
 
-    Therefore, links inside that page must be relative to the generated
-    page directory, not merely to the Markdown file location.
+    Raw HTML attributes such as iframe ``src`` are not rewritten by MkDocs,
+    so they must be relative to the generated page URL directory.
     """
     page_url_dir = page_file.with_suffix("")
     return posixpath.relpath(
