@@ -303,13 +303,23 @@ def _docs_relative_link(docs_src_dir: Path, target_file: Path) -> str:
 
 
 def _coverage_html_runtime_link(html_file: Path, target_page: Path) -> str:
-    """Build a link from a generated coverage HTML file back to a MkDocs page."""
+    """Build a link from a generated coverage HTML file back to a MkDocs page.
+
+    MkDocs serves Markdown files as directory URLs by default.
+
+    Example:
+        docs/coverage-report.md -> coverage-report/
+
+    Therefore, backlinks injected into raw coverage HTML files should include
+    the trailing slash to avoid MkDocs redirecting with HTTP 302.
+    """
     page_url_dir = target_page.with_suffix("")
-    return posixpath.relpath(
+    href = posixpath.relpath(
         page_url_dir.as_posix(),
         start=html_file.parent.as_posix(),
     )
 
+    return f"{href}/"
 
 def _first_existing(directory: Path, filenames: list[str]) -> Path | None:
     for filename in filenames:
