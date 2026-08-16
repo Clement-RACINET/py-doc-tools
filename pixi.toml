@@ -5,12 +5,13 @@ platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
 [dependencies]
 python = ">=3.12,<3.13"
 pip = "*"
+pytest = ">=9.1.1,<10"
 
 [pypi-dependencies]
 py-doc-tools = { path = ".", editable = true }
 
 [feature.dev.dependencies]
-pytest = "*"
+pytest = ">=9.1.1,<10"
 pytest-cov = "*"
 ruff = "*"
 mypy = "*"

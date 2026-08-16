@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 from py_doc_tools.core.exceptions import MissingConfigSectionError
 from py_doc_tools.core.subprocesses import run_command
+from py_doc_tools.coverage.nav import inject_coverage_backlinks, update_coverage_nav
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -55,6 +56,8 @@ def run_coverage(cfg: DocToolsConfig, console: Console) -> int:
     if proc.returncode == 0:
         console.ok(f"Coverage report generated: {output_dir}")
         _ = generate_coverage_page(cfg, console)
+        inject_coverage_backlinks(cfg, console)
+        update_coverage_nav(cfg, console)
     else:
         console.warn("Coverage command returned a non-zero exit code.")
 

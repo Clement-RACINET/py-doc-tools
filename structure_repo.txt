@@ -22,12 +22,30 @@ py-doc-tools
 │       ├── coverage
 │       │   ├── __init__.py
 │       │   └── runner.py
+│       ├── diagnostics
+│       │   ├── __init__.py
+│       │   └── generator.py
+│       ├── diagrams
+│       │   ├── __init__.py
+│       │   └── generator.py
+│       ├── examples
+│       │   ├── __init__.py
+│       │   └── generator.py
 │       ├── mkdocs
 │       │   ├── __init__.py
 │       │   └── runner.py
 │       ├── pipeline
 │       │   ├── __init__.py
 │       │   └── runner.py
+│       ├── readme
+│       │   ├── __init__.py
+│       │   └── generator.py
+│       ├── tags
+│       │   ├── __init__.py
+│       │   └── injector.py
+│       ├── todo
+│       │   ├── __init__.py
+│       │   └── generator.py
 │       ├── __init__.py
 │       ├── __main__.py
 │       └── cli.py
@@ -37,18 +55,27 @@ py-doc-tools
 │   ├── test_cli.py
 │   ├── test_cli_branches.py
 │   ├── test_config_loader.py
+│   ├── test_config_loader_coverage_html.py
 │   ├── test_config_loader_errors.py
+│   ├── test_config_loader_sections.py
 │   ├── test_console.py
 │   ├── test_coverage_runner.py
+│   ├── test_diagnostics_generator.py
+│   ├── test_diagrams_generator.py
+│   ├── test_examples_generator.py
 │   ├── test_exceptions.py
 │   ├── test_filesystem.py
 │   ├── test_markers.py
 │   ├── test_mkdocs_runner.py
+│   ├── test_pipeline_branches.py
 │   ├── test_pipeline_runner.py
-│   └── test_subprocesses.py
+│   ├── test_readme_generator.py
+│   ├── test_subprocesses.py
+│   ├── test_tags_injector.py
+│   └── test_todo_generator.py
 ├── LICENSE
 ├── pixi.lock
 ├── pixi.toml
 ├── pyproject.toml
 ├── README.md
-└── TODO
+└── structure_repo.txt

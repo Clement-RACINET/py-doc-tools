@@ -37,6 +37,13 @@ class CoverageConfig:
     branch: bool = True
     quiet: bool = True
 
+    nav_enabled: bool = True
+    nav_start_marker: str = "# --- AUTOGEN_COVERAGE_START ---"
+    nav_end_marker: str = "# --- AUTOGEN_COVERAGE_END ---"
+    nav_max_depth: int = 8
+
+    inject_backlinks: bool = True
+    backlink_label: str = "← Back to documentation"
 
 @dataclass(frozen=True, slots=True)
 class ExamplesConfig:

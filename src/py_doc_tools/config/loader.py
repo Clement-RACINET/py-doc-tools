@@ -10,7 +10,13 @@ from py_doc_tools.config.defaults import (
     DEFAULT_API_NAV_END_MARKER,
     DEFAULT_API_NAV_START_MARKER,
     DEFAULT_API_OUTPUT_DIR,
+    DEFAULT_COVERAGE_BACKLINK_LABEL,
+    DEFAULT_COVERAGE_BACKLINKS_ENABLED,
     DEFAULT_COVERAGE_ENTRYPOINTS,
+    DEFAULT_COVERAGE_NAV_ENABLED,
+    DEFAULT_COVERAGE_NAV_END_MARKER,
+    DEFAULT_COVERAGE_NAV_MAX_DEPTH,
+    DEFAULT_COVERAGE_NAV_START_MARKER,
     DEFAULT_COVERAGE_OUTPUT_DIR,
     DEFAULT_COVERAGE_PAGE_FILE,
     DEFAULT_COVERAGE_PAGE_TITLE,
@@ -228,6 +234,36 @@ def _build_coverage_config(
         ),
         branch=_bool(table, "branch", default=True),
         quiet=_bool(table, "quiet", default=True),
+        nav_enabled=_bool(
+            table,
+            "nav_enabled",
+            default=DEFAULT_COVERAGE_NAV_ENABLED,
+        ),
+        nav_start_marker=_string(
+            table,
+            "nav_start_marker",
+            DEFAULT_COVERAGE_NAV_START_MARKER,
+        ),
+        nav_end_marker=_string(
+            table,
+            "nav_end_marker",
+            DEFAULT_COVERAGE_NAV_END_MARKER,
+        ),
+        nav_max_depth=_int(
+            table,
+            "nav_max_depth",
+            DEFAULT_COVERAGE_NAV_MAX_DEPTH,
+        ),
+        inject_backlinks=_bool(
+            table,
+            "inject_backlinks",
+            default=DEFAULT_COVERAGE_BACKLINKS_ENABLED,
+        ),
+        backlink_label=_string(
+            table,
+            "backlink_label",
+            DEFAULT_COVERAGE_BACKLINK_LABEL,
+        ),
     )
 
 
