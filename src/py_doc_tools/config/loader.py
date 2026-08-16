@@ -299,6 +299,7 @@ def _build_examples_config(root: Path, table: TomlTable) -> ExamplesConfig:
             default=True,
         ),
         preview_max_width_px=_int(table, "preview_max_width_px", 420),
+        clean_output_dir=_bool(table, "clean_output_dir", default=True),
         skip_dirs=_string_list(table, "skip_dirs", DEFAULT_EXCLUDE_DIRS),
         skip_files=_string_list(table, "skip_files", DEFAULT_EXCLUDE_FILES),
         asset_extensions=_string_list(

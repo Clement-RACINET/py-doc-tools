@@ -21,6 +21,7 @@ py-doc-tools
 │       │   └── titles.py
 │       ├── coverage
 │       │   ├── __init__.py
+│       │   ├── nav.py
 │       │   └── runner.py
 │       ├── diagnostics
 │       │   ├── __init__.py
@@ -59,6 +60,7 @@ py-doc-tools
 │   ├── test_config_loader_errors.py
 │   ├── test_config_loader_sections.py
 │   ├── test_console.py
+│   ├── test_coverage_nav.py
 │   ├── test_coverage_runner.py
 │   ├── test_diagnostics_generator.py
 │   ├── test_diagrams_generator.py

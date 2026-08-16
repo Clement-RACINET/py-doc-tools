@@ -11,6 +11,7 @@ from py_doc_tools.config.model import CoverageConfig, DocToolsConfig
 from py_doc_tools.core.console import Console
 from py_doc_tools.core.exceptions import MissingConfigSectionError
 from py_doc_tools.coverage.nav import (
+    Tree,
     build_coverage_nav_block,
     build_coverage_tree,
     inject_coverage_backlinks,
@@ -23,6 +24,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 EXPECTED_NAV_ITEM_COUNT = 2
+_MISSING = object()
 
 
 def _cfg(
@@ -30,10 +32,10 @@ def _cfg(
     *,
     nav_enabled: bool = True,
     inject_backlinks_enabled: bool = True,
-    coverage: CoverageConfig | object | None = ...,
+    coverage: CoverageConfig | object | None = _MISSING,
 ) -> DocToolsConfig:
-    if coverage is ...:
-        coverage_config = CoverageConfig(
+    if coverage is _MISSING:
+        coverage_config: CoverageConfig | None = CoverageConfig(
             package="demo",
             output_dir=tmp_path / "docs" / "coverage",
             page_file=tmp_path / "docs" / "coverage-report.md",
@@ -44,8 +46,11 @@ def _cfg(
             inject_backlinks=inject_backlinks_enabled,
             backlink_label="← Back to documentation",
         )
-    else:
+    elif isinstance(coverage, CoverageConfig) or coverage is None:
         coverage_config = coverage
+    else:
+        msg = "coverage must be CoverageConfig, None or _MISSING"
+        raise TypeError(msg)
 
     return DocToolsConfig(
         project_root=tmp_path,
@@ -189,7 +194,7 @@ def test_inject_coverage_backlinks(tmp_path: Path) -> None:
 
     assert "py-doc-tools-coverage-backlink" in content
     assert "← Back to documentation" in content
-    assert 'href="../coverage-report"' in content
+    assert 'href="../coverage-report/"' in content
 
 
 def test_inject_coverage_backlinks_returns_when_disabled(tmp_path: Path) -> None:
@@ -437,7 +442,7 @@ def test_build_coverage_tree_truncates_deep_paths(tmp_path: Path) -> None:
 
 def test_render_tree_renders_leaf_and_nested_nodes(tmp_path: Path) -> None:  # noqa: ARG001
     """Tree rendering handles nested nodes and leaves."""
-    tree = {
+    tree: Tree = {
         "pkg": {
             "core": {
                 "client.py": "coverage/client.html",

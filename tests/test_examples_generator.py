@@ -39,6 +39,7 @@ def _examples_config(tmp_path: Path) -> ExamplesConfig:
         copy_assets=True,
         show_image_previews=True,
         preview_max_width_px=PREVIEW_MAX_WIDTH,
+        clean_output_dir=True,
         skip_dirs=["ignored"],
         skip_files=["skip.py"],
         asset_extensions=[".png"],
@@ -86,12 +87,12 @@ nav:
 
     assert code == 0
     assert (tmp_path / "docs" / "examples" / "index.md").exists()
-    assert (tmp_path / "docs" / "examples" / "hello.md").exists()
-    assert (tmp_path / "docs" / "examples" / "image.md").exists()
+    assert (tmp_path / "docs" / "examples" / "hello.py.md").exists()
+    assert (tmp_path / "docs" / "examples" / "image.png.md").exists()
     assert (tmp_path / "docs" / "examples" / "assets" / "image.png").exists()
 
     mkdocs_content = (tmp_path / "mkdocs.yml").read_text(encoding="utf-8")
-    assert "Hello: examples/hello.md" in mkdocs_content
+    assert "Hello: examples/hello.py.md" in mkdocs_content
 
 
 def test_generate_examples_docs_missing_source(tmp_path: Path) -> None:
@@ -114,7 +115,7 @@ def test_generate_examples_docs_without_mkdocs_file(tmp_path: Path) -> None:
     cfg = _base_config(tmp_path, _examples_config(tmp_path))
 
     assert generate_examples_docs(cfg, Console()) == 0
-    assert (tmp_path / "docs" / "examples" / "demo.md").exists()
+    assert (tmp_path / "docs" / "examples" / "demo.txt.md").exists()
 
 
 def test_generate_examples_docs_skips_configured_files(tmp_path: Path) -> None:
@@ -130,8 +131,10 @@ def test_generate_examples_docs_skips_configured_files(tmp_path: Path) -> None:
     cfg = _base_config(tmp_path, _examples_config(tmp_path))
 
     assert generate_examples_docs(cfg, Console()) == 0
-    assert not (tmp_path / "docs" / "examples" / "skip.md").exists()
-    assert not (tmp_path / "docs" / "examples" / "ignored" / "ignored.md").exists()
+    assert not (tmp_path / "docs" / "examples" / "skip.py.md").exists()
+    assert not (
+        tmp_path / "docs" / "examples" / "ignored" / "ignored.py.md"
+    ).exists()
 
 
 def test_generate_examples_docs_asset_without_preview(tmp_path: Path) -> None:
@@ -151,6 +154,7 @@ def test_generate_examples_docs_asset_without_preview(tmp_path: Path) -> None:
         copy_assets=False,
         show_image_previews=False,
         preview_max_width_px=PREVIEW_MAX_WIDTH,
+        clean_output_dir=True,
         skip_dirs=[],
         skip_files=[],
         asset_extensions=[".png"],
@@ -159,7 +163,7 @@ def test_generate_examples_docs_asset_without_preview(tmp_path: Path) -> None:
     cfg = _base_config(tmp_path, examples_cfg)
 
     assert generate_examples_docs(cfg, Console()) == 0
-    assert (tmp_path / "docs" / "examples" / "image.md").exists()
+    assert (tmp_path / "docs" / "examples" / "image.png.md").exists()
     assert not (tmp_path / "docs" / "examples" / "assets" / "image.png").exists()
 
 
@@ -169,3 +173,63 @@ def test_generate_examples_docs_missing_config(tmp_path: Path) -> None:
 
     with pytest.raises(MissingConfigSectionError, match="examples"):
         _ = generate_examples_docs(cfg, Console())
+
+def test_generate_examples_docs_preserves_folder_tree(tmp_path: Path) -> None:
+    """Examples navigation preserves source folder hierarchy."""
+    examples_dir = tmp_path / "examples"
+    first_dir = examples_dir / "01"
+    second_dir = examples_dir / "02"
+
+    first_dir.mkdir(parents=True)
+    second_dir.mkdir(parents=True)
+
+    _ = (first_dir / "ping.py").write_text("print('ping')\n", encoding="utf-8")
+    _ = (first_dir / "result.txt").write_text("pong\n", encoding="utf-8")
+    _ = (second_dir / "ExampleStartStop.mod").write_text(
+        "MODULE ExampleStartStop\nENDMODULE\n",
+        encoding="utf-8",
+    )
+    _ = (second_dir / "ExampleStartStop.pgf").write_text(
+        "ExampleStartStop\n",
+        encoding="utf-8",
+    )
+
+    (tmp_path / "docs").mkdir()
+    _ = (tmp_path / "mkdocs.yml").write_text(
+        """
+site_name: Demo
+nav:
+  - Examples:
+      # --- AUTOGEN_EXAMPLES_START ---
+      - Old: old.md
+      # --- AUTOGEN_EXAMPLES_END ---
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    cfg = _base_config(tmp_path, _examples_config(tmp_path))
+
+    assert generate_examples_docs(cfg, Console()) == 0
+
+    mkdocs_content = (tmp_path / "mkdocs.yml").read_text(encoding="utf-8")
+
+    assert "- Old: old.md" not in mkdocs_content
+    assert "- 01:" in mkdocs_content
+    assert "- Ping: examples/01/ping.py.md" in mkdocs_content
+    assert "- Result: examples/01/result.txt.md" in mkdocs_content
+    assert "- 02:" in mkdocs_content
+    assert "- Examplestartstop Mod: examples/02/ExampleStartStop.mod.md" in (
+        mkdocs_content
+    )
+    assert "- Examplestartstop Pgf: examples/02/ExampleStartStop.pgf.md" in (
+        mkdocs_content
+    )
+
+    assert (tmp_path / "docs" / "examples" / "01" / "ping.py.md").exists()
+    assert (tmp_path / "docs" / "examples" / "01" / "result.txt.md").exists()
+    assert (
+        tmp_path / "docs" / "examples" / "02" / "ExampleStartStop.mod.md"
+    ).exists()
+    assert (
+        tmp_path / "docs" / "examples" / "02" / "ExampleStartStop.pgf.md"
+    ).exists()
