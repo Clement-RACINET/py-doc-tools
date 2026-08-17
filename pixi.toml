@@ -32,6 +32,12 @@ typecheck = "mypy src tests"
 tests = "pytest"
 check = { depends-on = ["fmt", "lint", "typecheck", "tests"] }
 
+pydocs = "pydocs"
+docs-diagnostics = "pydocs generate --diagnostics"
+docs-todo = "pydocs generate --todo"
+docs-all = "pydocs generate --all"
+docs-build = "mkdocs build"
+docs-build-strict = "mkdocs build --strict"
 
 pystructure = "pystructure"
 structure = "pystructure tree --root ."

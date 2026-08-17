@@ -95,3 +95,89 @@ source = ["py_doc_tools"]
 omit = [
     "src/py_doc_tools/__main__.py",
 ]
+
+
+[tool.py-doc-tools]
+enable_api = false
+enable_examples = false
+enable_readme = false
+enable_todo = true
+enable_diagnostics = true
+enable_tags = true
+enable_diagrams = false
+enable_coverage = false
+
+docs_dir = "docs"
+docs_src_dir = "docs/src"
+mkdocs_config = "mkdocs.yml"
+packages = ["py_doc_tools"]
+
+
+[tool.py-doc-tools.diagnostics]
+output_dir = "docs/src/diagnostics"
+ruff_output_file = "docs/src/diagnostics/ruff.md"
+mkdocs_output_file = "docs/src/diagnostics/mkdocs.md"
+
+enable_ruff = true
+enable_mkdocs = true
+mkdocs_strict = false
+
+inject_source_tags = false
+
+clean_before_inject = true
+clean_legacy_tags = true
+
+fail_on_ruff = false
+fail_on_mkdocs = false
+
+ruff_targets = ["src", "tests"]
+ruff_exclude_dirs = [
+    ".git",
+    ".pixi",
+    ".pytest_cache",
+    "__pycache__",
+    "docs/build",
+    "site",
+]
+ruff_exclude_files = [
+    "*.pyc",
+    "*.pyo",
+]
+
+[tool.py-doc-tools.tags]
+scan_roots = ["src", "tests"]
+dry_run = true
+generated_prefix = "py-doc-tools"
+markers = ["TODO", "FIXME"]
+
+exclude_dirs = [
+    ".git",
+    ".pixi",
+    ".pytest_cache",
+    "__pycache__",
+    "docs/build",
+    "site",
+]
+exclude_files = [
+    "*.pyc",
+    "*.pyo",
+]
+
+[tool.py-doc-tools.todo]
+output_file = "docs/src/todo.md"
+scan_roots = ["src", "tests"]
+markers = ["TODO", "FIXME"]
+mode = "sections"
+
+exclude_dirs = [
+    ".git",
+    ".pixi",
+    ".pytest_cache",
+    "__pycache__",
+    "docs/build",
+    "site",
+]
+exclude_files = [
+    "*.pyc",
+    "*.pyo",
+]
