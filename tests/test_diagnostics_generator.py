@@ -23,6 +23,7 @@ SUCCESS_CODE = 0
 RUFF_FAILURE_CODE = 2
 MKDOCS_FAILURE_CODE = 1
 EXPECTED_CALL_COUNT = 2
+COMMAND_NOT_FOUND_CODE = 1
 
 
 def _make_config(**kwargs: object) -> DocToolsConfig:
@@ -139,11 +140,11 @@ def test_generate_diagnostics_docs_runs_ruff_and_mkdocs(
     )
 
 
-def test_generate_diagnostics_docs_returns_highest_exit_code(
+def test_generate_diagnostics_docs_is_non_blocking_by_default(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    """Diagnostics generator returns the highest command exit code."""
+    """Diagnostics generator does not fail on tool errors by default."""
     return_codes = [RUFF_FAILURE_CODE, MKDOCS_FAILURE_CODE]
 
     def fake_run(
@@ -162,6 +163,48 @@ def test_generate_diagnostics_docs_returns_highest_exit_code(
     monkeypatch.setattr(subprocess, "run", fake_run)
 
     cfg = _base_config(tmp_path, _diagnostics_config(tmp_path))
+
+    assert (
+        diagnostics_generator.generate_diagnostics_docs(cfg, Console()) == SUCCESS_CODE
+    )
+
+
+def test_generate_diagnostics_docs_returns_highest_exit_code_when_strict(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Diagnostics generator returns tool failures when fail_on options are set."""
+    return_codes = [RUFF_FAILURE_CODE, MKDOCS_FAILURE_CODE]
+
+    def fake_run(
+        command: list[str],
+        **kwargs: object,
+    ) -> subprocess.CompletedProcess[str]:
+        _assert_common_subprocess_kwargs(kwargs, expected_cwd=tmp_path)
+
+        return subprocess.CompletedProcess[str](
+            args=command,
+            returncode=return_codes.pop(0),
+            stdout="",
+            stderr="error",
+        )
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    diagnostics = _make_diagnostics_config(
+        output_dir=tmp_path / "docs" / "diagnostics",
+        ruff_output_file=tmp_path / "docs" / "diagnostics" / "ruff.md",
+        mkdocs_output_file=tmp_path / "docs" / "diagnostics" / "mkdocs.md",
+        enable_ruff=True,
+        enable_mkdocs=True,
+        mkdocs_strict=True,
+        fail_on_ruff=True,
+        fail_on_mkdocs=True,
+        ruff_targets=["src", "tests"],
+        ruff_exclude_dirs=[".git", ".pixi", "docs/build"],
+        ruff_exclude_files=["*.pyc"],
+    )
+    cfg = _base_config(tmp_path, diagnostics)
 
     assert (
         diagnostics_generator.generate_diagnostics_docs(cfg, Console())
@@ -337,11 +380,45 @@ def test_generate_diagnostics_docs_handles_missing_command(
 
     code = diagnostics_generator.generate_diagnostics_docs(cfg, Console())
 
-    assert code == 1
+    assert code == SUCCESS_CODE
     assert diagnostics.ruff_output_file.exists()
     assert "could not be executed" in diagnostics.ruff_output_file.read_text(
         encoding="utf-8",
     )
+
+
+def test_generate_diagnostics_docs_handles_missing_command_when_strict(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Diagnostics generator fails on missing Ruff command when strict."""
+
+    def fake_run(
+        command: list[str],
+        **kwargs: object,
+    ) -> subprocess.CompletedProcess[str]:
+        _assert_common_subprocess_kwargs(kwargs, expected_cwd=tmp_path)
+
+        raise FileNotFoundError(command[0])
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    diagnostics = _make_diagnostics_config(
+        output_dir=tmp_path / "docs" / "diagnostics",
+        ruff_output_file=tmp_path / "docs" / "diagnostics" / "ruff.md",
+        mkdocs_output_file=tmp_path / "docs" / "diagnostics" / "mkdocs.md",
+        enable_ruff=True,
+        enable_mkdocs=False,
+        mkdocs_strict=False,
+        fail_on_ruff=True,
+    )
+
+    cfg = _base_config(tmp_path, diagnostics)
+
+    code = diagnostics_generator.generate_diagnostics_docs(cfg, Console())
+
+    assert code == COMMAND_NOT_FOUND_CODE
+    assert diagnostics.ruff_output_file.exists()
 
 
 def test_generate_diagnostics_docs_handles_missing_mkdocs_command(
@@ -373,7 +450,7 @@ def test_generate_diagnostics_docs_handles_missing_mkdocs_command(
 
     code = diagnostics_generator.generate_diagnostics_docs(cfg, Console())
 
-    assert code == 1
+    assert code == SUCCESS_CODE
     assert diagnostics.mkdocs_output_file.exists()
     assert "could not be executed" in diagnostics.mkdocs_output_file.read_text(
         encoding="utf-8",

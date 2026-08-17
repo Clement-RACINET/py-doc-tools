@@ -45,6 +45,7 @@ def test_generate_todo_docs_with_items(tmp_path: Path) -> None:
             markers=["TODO", "FIXME"],
             exclude_dirs=[],
             exclude_files=[],
+            mode="table",
         ),
     )
 
@@ -74,6 +75,7 @@ def test_generate_todo_docs_without_items(tmp_path: Path) -> None:
             markers=["TODO"],
             exclude_dirs=[],
             exclude_files=[],
+            mode="table",
         ),
     )
 
@@ -81,6 +83,69 @@ def test_generate_todo_docs_without_items(tmp_path: Path) -> None:
 
     assert code == 0
     assert "No TODO-like markers found." in output.read_text(encoding="utf-8")
+
+
+def test_generate_todo_docs_sections_with_items(tmp_path: Path) -> None:
+    """TODO generator writes AUTOGEN sections by default."""
+    src = tmp_path / "src"
+    src.mkdir()
+
+    _ = (src / "module.py").write_text(
+        "# TODO: improve this\n# FIXME: fix that\n",
+        encoding="utf-8",
+    )
+
+    output = tmp_path / "docs" / "todo.md"
+    cfg = _base_config(
+        tmp_path,
+        TodoConfig(
+            output_file=output,
+            scan_roots=[src],
+            markers=["TODO", "FIXME"],
+            exclude_dirs=[],
+            exclude_files=[],
+            mode="sections",
+        ),
+    )
+
+    code = generate_todo_docs(cfg, Console())
+
+    assert code == 0
+    content = output.read_text(encoding="utf-8")
+    assert "<!-- AUTOGEN:GENERAL_TODO:START -->" in content
+    assert "<!-- AUTOGEN:GENERAL_FIXME:START -->" in content
+    assert "`src/module.py:1`" in content
+    assert "`src/module.py:2`" in content
+    assert "improve this" in content
+    assert "fix that" in content
+
+
+def test_generate_todo_docs_sections_without_items(tmp_path: Path) -> None:
+    """TODO generator writes empty AUTOGEN sections when no markers are found."""
+    src = tmp_path / "src"
+    src.mkdir()
+
+    _ = (src / "module.py").write_text("print('hello')\n", encoding="utf-8")
+
+    output = tmp_path / "docs" / "todo.md"
+    cfg = _base_config(
+        tmp_path,
+        TodoConfig(
+            output_file=output,
+            scan_roots=[src],
+            markers=["TODO"],
+            exclude_dirs=[],
+            exclude_files=[],
+            mode="sections",
+        ),
+    )
+
+    code = generate_todo_docs(cfg, Console())
+
+    assert code == 0
+    content = output.read_text(encoding="utf-8")
+    assert "<!-- AUTOGEN:GENERAL_TODO:START -->" in content
+    assert "> *Aucun TODO en suspens détecté.*" in content
 
 
 def test_collect_todo_items_skips_excluded_paths(tmp_path: Path) -> None:

@@ -20,6 +20,11 @@ from py_doc_tools.config.defaults import (
     DEFAULT_COVERAGE_OUTPUT_DIR,
     DEFAULT_COVERAGE_PAGE_FILE,
     DEFAULT_COVERAGE_PAGE_TITLE,
+    DEFAULT_DIAGNOSTICS_CLEAN_BEFORE_INJECT,
+    DEFAULT_DIAGNOSTICS_CLEAN_LEGACY_TAGS,
+    DEFAULT_DIAGNOSTICS_FAIL_ON_MKDOCS,
+    DEFAULT_DIAGNOSTICS_FAIL_ON_RUFF,
+    DEFAULT_DIAGNOSTICS_INJECT_SOURCE_TAGS,
     DEFAULT_DIAGNOSTICS_OUTPUT_DIR,
     DEFAULT_DIAGRAM_OUTPUT_FILE,
     DEFAULT_DOCS_DIR,
@@ -41,10 +46,15 @@ from py_doc_tools.config.defaults import (
     DEFAULT_RUFF_EXCLUDE_FILES,
     DEFAULT_RUFF_OUTPUT_FILE,
     DEFAULT_RUFF_TARGETS,
+    DEFAULT_TAG_CLEAN_LEGACY,
+    DEFAULT_TAG_DRY_RUN,
     DEFAULT_TAG_END_TOKEN,
+    DEFAULT_TAG_GENERATED_PREFIX,
     DEFAULT_TAG_START_TOKEN,
     DEFAULT_TODO_MARKERS,
+    DEFAULT_TODO_MODE,
     DEFAULT_TODO_OUTPUT_FILE,
+    DEFAULT_TODO_PRESERVE_MANUAL_CONTENT,
 )
 from py_doc_tools.config.exceptions import ConfigTableError, ConfigTypeError
 from py_doc_tools.config.model import (
@@ -342,6 +352,12 @@ def _build_todo_config(root: Path, table: TomlTable) -> TodoConfig:
         markers=_string_list(table, "markers", DEFAULT_TODO_MARKERS),
         exclude_dirs=_string_list(table, "exclude_dirs", DEFAULT_EXCLUDE_DIRS),
         exclude_files=_string_list(table, "exclude_files", []),
+        mode=_string(table, "mode", DEFAULT_TODO_MODE),
+        preserve_manual_content=_bool(
+            table,
+            "preserve_manual_content",
+            default=DEFAULT_TODO_PRESERVE_MANUAL_CONTENT,
+        ),
     )
 
 
@@ -362,6 +378,31 @@ def _build_diagnostics_config(root: Path, table: TomlTable) -> DiagnosticsConfig
         enable_ruff=_bool(table, "enable_ruff", default=True),
         enable_mkdocs=_bool(table, "enable_mkdocs", default=True),
         mkdocs_strict=_bool(table, "mkdocs_strict", default=False),
+        fail_on_ruff=_bool(
+            table,
+            "fail_on_ruff",
+            default=DEFAULT_DIAGNOSTICS_FAIL_ON_RUFF,
+        ),
+        fail_on_mkdocs=_bool(
+            table,
+            "fail_on_mkdocs",
+            default=DEFAULT_DIAGNOSTICS_FAIL_ON_MKDOCS,
+        ),
+        inject_source_tags=_bool(
+            table,
+            "inject_source_tags",
+            default=DEFAULT_DIAGNOSTICS_INJECT_SOURCE_TAGS,
+        ),
+        clean_before_inject=_bool(
+            table,
+            "clean_before_inject",
+            default=DEFAULT_DIAGNOSTICS_CLEAN_BEFORE_INJECT,
+        ),
+        clean_legacy_tags=_bool(
+            table,
+            "clean_legacy_tags",
+            default=DEFAULT_DIAGNOSTICS_CLEAN_LEGACY_TAGS,
+        ),
         ruff_targets=_string_list(
             table,
             "ruff_targets",
@@ -387,7 +428,17 @@ def _build_tags_config(root: Path, table: TomlTable) -> TagsConfig:
 
     return TagsConfig(
         scan_roots=scan_roots,
-        dry_run=_bool(table, "dry_run", default=True),
+        dry_run=_bool(table, "dry_run", default=DEFAULT_TAG_DRY_RUN),
+        generated_prefix=_string(
+            table,
+            "generated_prefix",
+            DEFAULT_TAG_GENERATED_PREFIX,
+        ),
+        clean_legacy=_bool(
+            table,
+            "clean_legacy",
+            default=DEFAULT_TAG_CLEAN_LEGACY,
+        ),
         start_token=_string(table, "start_token", DEFAULT_TAG_START_TOKEN),
         end_token=_string(table, "end_token", DEFAULT_TAG_END_TOKEN),
         markers=_string_list(table, "markers", DEFAULT_TODO_MARKERS),

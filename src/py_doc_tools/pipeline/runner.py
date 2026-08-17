@@ -44,26 +44,8 @@ def generate_all(cfg: DocToolsConfig, console: Console) -> int:
 
 
 def run_all(cfg: DocToolsConfig, console: Console) -> int:
-    """Run all enabled documentation tasks."""
+    """Run the full documentation pipeline."""
     exit_code = 0
-
-    if cfg.enable_api:
-        exit_code = max(exit_code, _as_exit_code(generate_api(cfg, console)))
-
-    if cfg.enable_examples:
-        exit_code = max(
-            exit_code,
-            _as_exit_code(generate_examples_docs(cfg, console)),
-        )
-
-    if cfg.enable_readme:
-        exit_code = max(
-            exit_code,
-            _as_exit_code(generate_readme_docs(cfg, console)),
-        )
-
-    if cfg.enable_todo:
-        exit_code = max(exit_code, _as_exit_code(generate_todo_docs(cfg, console)))
 
     if cfg.enable_diagnostics:
         exit_code = max(
@@ -74,6 +56,15 @@ def run_all(cfg: DocToolsConfig, console: Console) -> int:
     if cfg.enable_tags:
         exit_code = max(exit_code, _as_exit_code(inject_source_tags(cfg, console)))
 
+    if cfg.enable_api:
+        exit_code = max(exit_code, _as_exit_code(generate_api(cfg, console)))
+
+    if cfg.enable_examples:
+        exit_code = max(
+            exit_code,
+            _as_exit_code(generate_examples_docs(cfg, console)),
+        )
+
     if cfg.enable_diagrams:
         exit_code = max(
             exit_code,
@@ -82,6 +73,15 @@ def run_all(cfg: DocToolsConfig, console: Console) -> int:
 
     if cfg.enable_coverage:
         exit_code = max(exit_code, _as_exit_code(generate_coverage(cfg, console)))
+
+    if cfg.enable_todo:
+        exit_code = max(exit_code, _as_exit_code(generate_todo_docs(cfg, console)))
+
+    if cfg.enable_readme:
+        exit_code = max(
+            exit_code,
+            _as_exit_code(generate_readme_docs(cfg, console)),
+        )
 
     return max(
         exit_code,

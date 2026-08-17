@@ -25,13 +25,17 @@ py-doc-tools
 │       │   └── runner.py
 │       ├── diagnostics
 │       │   ├── __init__.py
-│       │   └── generator.py
+│       │   ├── generator.py
+│       │   └── ruff.py
 │       ├── diagrams
 │       │   ├── __init__.py
 │       │   └── generator.py
 │       ├── examples
 │       │   ├── __init__.py
 │       │   └── generator.py
+│       ├── issues
+│       │   ├── __init__.py
+│       │   └── model.py
 │       ├── mkdocs
 │       │   ├── __init__.py
 │       │   └── runner.py
@@ -43,6 +47,8 @@ py-doc-tools
 │       │   └── generator.py
 │       ├── tags
 │       │   ├── __init__.py
+│       │   ├── cleaner.py
+│       │   ├── generated.py
 │       │   └── injector.py
 │       ├── todo
 │       │   ├── __init__.py

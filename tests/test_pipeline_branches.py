@@ -109,12 +109,12 @@ def test_run_all_branches(
 
     assert code == DIAGNOSTICS_EXIT_CODE
     assert calls == [
-        "examples",
-        "readme",
-        "todo",
         "diagnostics",
         "tags",
+        "examples",
         "diagrams",
+        "todo",
+        "readme",
         "build:False",
     ]
 

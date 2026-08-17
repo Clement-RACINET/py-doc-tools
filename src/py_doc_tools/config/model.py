@@ -82,10 +82,13 @@ class TodoConfig:
     output_file: Path
     scan_roots: list[Path] = field(default_factory=list)
     markers: list[str] = field(
-        default_factory=lambda: ["TODO", "FIXME", "BUG", "HACK"],
+        default_factory=lambda: ["TODO", "FIXME", "BUG", "HACK", "BREAKING", "WARN"],
     )
     exclude_dirs: list[str] = field(default_factory=list)
     exclude_files: list[str] = field(default_factory=list)
+
+    mode: str = "sections"
+    preserve_manual_content: bool = True
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,9 +98,18 @@ class DiagnosticsConfig:
     output_dir: Path
     ruff_output_file: Path
     mkdocs_output_file: Path
+
     enable_ruff: bool = True
     enable_mkdocs: bool = True
     mkdocs_strict: bool = False
+
+    fail_on_ruff: bool = False
+    fail_on_mkdocs: bool = False
+
+    inject_source_tags: bool = True
+    clean_before_inject: bool = True
+    clean_legacy_tags: bool = True
+
     ruff_targets: list[str] = field(default_factory=list)
     ruff_exclude_dirs: list[str] = field(default_factory=list)
     ruff_exclude_files: list[str] = field(default_factory=list)
@@ -105,14 +117,18 @@ class DiagnosticsConfig:
 
 @dataclass(frozen=True, slots=True)
 class TagsConfig:
-    """Optional source tag injection configuration."""
+    """Source tag injection configuration."""
 
     scan_roots: list[Path] = field(default_factory=list)
-    dry_run: bool = True
+    dry_run: bool = False
+
+    generated_prefix: str = "py-doc-tools"
+    clean_legacy: bool = True
+
     start_token: str = "# <pydocs>"
     end_token: str = "# </pydocs>"
     markers: list[str] = field(
-        default_factory=lambda: ["TODO", "FIXME", "BUG", "HACK"],
+        default_factory=lambda: ["TODO", "FIXME", "BUG", "HACK", "BREAKING", "WARN"],
     )
     exclude_dirs: list[str] = field(default_factory=list)
     exclude_files: list[str] = field(default_factory=list)

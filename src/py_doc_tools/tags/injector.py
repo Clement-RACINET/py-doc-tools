@@ -1,100 +1,181 @@
-"""Optional source tag injection."""
+"""Source tag injection from normalized diagnostic issues."""
 
 from __future__ import annotations
 
 import fnmatch
+from collections import defaultdict
 from typing import TYPE_CHECKING
 
 from py_doc_tools.core.exceptions import MissingConfigSectionError
+from py_doc_tools.tags.generated import render_generated_tag
 
 if TYPE_CHECKING:
     from pathlib import Path
 
     from py_doc_tools.config.model import DocToolsConfig
     from py_doc_tools.core.console import Console
+    from py_doc_tools.issues.model import DiagnosticIssue
 
 
 def inject_source_tags(cfg: DocToolsConfig, console: Console) -> int:
-    """Inject source tags near TODO-like markers."""
+    """CLI-compatible standalone tag injection entry point.
+
+    Generated diagnostic tags are injected by diagnostics collectors through
+    `inject_issues`. This function remains as a CLI target.
+    """
     if cfg.tags is None:
         msg = "tags"
         raise MissingConfigSectionError(msg)
 
-    changed_files = 0
-
-    for root in cfg.tags.scan_roots:
-        if not root.exists():
-            continue
-
-        for file_path in sorted(root.rglob("*.py")):
-            if _should_skip(
-                file_path=file_path,
-                root=root,
-                exclude_dirs=cfg.tags.exclude_dirs,
-                exclude_files=cfg.tags.exclude_files,
-            ):
-                continue
-
-            if _process_file(cfg, file_path):
-                changed_files += 1
-
-    if cfg.tags.dry_run:
-        console.info(
-            f"Tag dry-run completed. Files that would change: {changed_files}",
-        )
-    else:
-        console.ok(f"Source tags injected. Changed files: {changed_files}")
+    message = (
+        "No standalone tag injection performed. "
+        "Run diagnostics with source tag injection enabled."
+    )
+    console.info(message)
 
     return 0
 
 
-def _process_file(cfg: DocToolsConfig, file_path: Path) -> bool:
+def inject_issues(
+    cfg: DocToolsConfig,
+    console: Console,
+    issues: list[DiagnosticIssue],
+) -> int:
+    """Inject generated source tags for localized diagnostic issues."""
     if cfg.tags is None:
         msg = "tags"
         raise MissingConfigSectionError(msg)
 
-    original = file_path.read_text(encoding="utf-8")
-    lines = original.splitlines()
+    localized = [issue for issue in issues if issue.is_localized()]
+    by_file: dict[Path, list[DiagnosticIssue]] = defaultdict(list)
 
-    new_lines: list[str] = []
-    changed = False
+    for issue in localized:
+        if issue.file_path is None:
+            continue
 
-    for line in lines:
-        if _contains_marker(line, cfg.tags.markers):
-            indent = line[: len(line) - len(line.lstrip())]
-            new_lines.append(f"{indent}{cfg.tags.start_token}")
-            new_lines.append(line)
-            new_lines.append(f"{indent}{cfg.tags.end_token}")
-            changed = True
-        else:
-            new_lines.append(line)
+        if _is_allowed_file(cfg, issue.file_path):
+            by_file[issue.file_path].append(issue)
 
-    if not changed:
-        return False
+    changed_files = 0
+    injected_tags = 0
 
-    if not cfg.tags.dry_run:
-        _ = file_path.write_text(
-            "\n".join(new_lines) + "\n",
-            encoding="utf-8",
+    for file_path, file_issues in by_file.items():
+        count = inject_issues_in_file(
+            file_path=file_path,
+            issues=file_issues,
+            prefix=cfg.tags.generated_prefix,
+            dry_run=cfg.tags.dry_run,
         )
 
-    return True
+        if count > 0:
+            changed_files += 1
+            injected_tags += count
+
+    if cfg.tags.dry_run:
+        message = (
+            "Source tag dry-run completed. Tags that would be injected: "
+            f"{injected_tags}."
+        )
+        console.info(message)
+    else:
+        message = (
+            f"Source diagnostic tags injected: {injected_tags} tag(s) "
+            f"in {changed_files} file(s)."
+        )
+        console.ok(message)
+
+    return 0
 
 
-def _contains_marker(line: str, markers: list[str]) -> bool:
-    return any(f"{marker}:" in line for marker in markers)
-
-
-def _should_skip(
+def inject_issues_in_file(
     *,
     file_path: Path,
-    root: Path,
-    exclude_dirs: list[str],
-    exclude_files: list[str],
-) -> bool:
-    relative_parts = file_path.relative_to(root).parts
+    issues: list[DiagnosticIssue],
+    prefix: str,
+    dry_run: bool,
+) -> int:
+    """Inject issue tags into one Python source file."""
+    if not file_path.exists():
+        return 0
 
-    if any(part in exclude_dirs for part in relative_parts[:-1]):
-        return True
+    try:
+        lines = file_path.read_text(encoding="utf-8").splitlines(keepends=True)
+    except OSError:
+        return 0
 
-    return any(fnmatch.fnmatch(file_path.name, pattern) for pattern in exclude_files)
+    insertions: dict[int, list[str]] = defaultdict(list)
+
+    for issue in sorted(
+        issues,
+        key=lambda item: (item.line_number or 1, item.code, item.message),
+    ):
+        line_number = issue.line_number or 1
+        index = max(0, min(line_number - 1, len(lines)))
+        indent = _indent_for_index(lines, index)
+        tag = render_generated_tag(issue, prefix=prefix)
+        rendered_line = f"{indent}{tag}\n"
+
+        if rendered_line not in insertions[index]:
+            insertions[index].append(rendered_line)
+
+    if not insertions:
+        return 0
+
+    new_lines: list[str] = []
+    injected = 0
+
+    for index, line in enumerate(lines):
+        pending = insertions.get(index, [])
+
+        if pending:
+            new_lines.extend(pending)
+            injected += len(pending)
+
+        new_lines.append(line)
+
+    end_insertions = insertions.get(len(lines), [])
+    if end_insertions:
+        new_lines.extend(end_insertions)
+        injected += len(end_insertions)
+
+    if injected == 0:
+        return 0
+
+    if not dry_run:
+        _ = file_path.write_text("".join(new_lines), encoding="utf-8")
+
+    return injected
+
+
+def _indent_for_index(lines: list[str], index: int) -> str:
+    if not lines:
+        return ""
+
+    safe_index = min(index, len(lines) - 1)
+    line = lines[safe_index]
+    return line[: len(line) - len(line.lstrip())]
+
+
+def _is_allowed_file(cfg: DocToolsConfig, file_path: Path) -> bool:
+    if cfg.tags is None:
+        msg = "tags"
+        raise MissingConfigSectionError(msg)
+
+    if file_path.suffix != ".py":
+        return False
+
+    for root in cfg.tags.scan_roots:
+        try:
+            relative = file_path.relative_to(root)
+        except ValueError:
+            continue
+
+        if any(part in cfg.tags.exclude_dirs for part in relative.parts[:-1]):
+            return False
+
+        return not any(
+            fnmatch.fnmatch(file_path.name, pattern)
+            for pattern in cfg.tags.exclude_files
+        )
+
+    return False
