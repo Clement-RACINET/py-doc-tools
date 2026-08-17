@@ -321,6 +321,7 @@ def _coverage_html_runtime_link(html_file: Path, target_page: Path) -> str:
 
     return f"{href}/"
 
+
 def _first_existing(directory: Path, filenames: list[str]) -> Path | None:
     for filename in filenames:
         candidate = directory / filename

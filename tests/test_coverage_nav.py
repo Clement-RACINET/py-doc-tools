@@ -188,9 +188,9 @@ def test_inject_coverage_backlinks(tmp_path: Path) -> None:
 
     inject_coverage_backlinks(cfg, Console())
 
-    content = (
-        tmp_path / "docs" / "coverage" / "z_core_client_py.html"
-    ).read_text(encoding="utf-8")
+    content = (tmp_path / "docs" / "coverage" / "z_core_client_py.html").read_text(
+        encoding="utf-8"
+    )
 
     assert "py-doc-tools-coverage-backlink" in content
     assert "← Back to documentation" in content

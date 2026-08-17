@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 from typing import TYPE_CHECKING, cast
 
 import pytest
@@ -13,7 +14,7 @@ from py_doc_tools.core.console import Console
 from py_doc_tools.core.exceptions import MissingConfigSectionError
 
 if TYPE_CHECKING:
-    from collections.abc import Callable
+    from collections.abc import Callable, Mapping
     from pathlib import Path
 
 SUCCESS_CODE = 0
@@ -58,6 +59,36 @@ def _diagnostics_config(tmp_path: Path) -> DiagnosticsConfig:
     )
 
 
+def _assert_common_subprocess_kwargs(
+    kwargs: Mapping[str, object],
+    *,
+    expected_cwd: Path,
+) -> None:
+    assert kwargs["cwd"] == expected_cwd
+    assert kwargs["check"] is False
+    assert kwargs["capture_output"] is True
+    assert kwargs["text"] is True
+    assert kwargs["encoding"] == "utf-8"
+    assert kwargs["errors"] == "replace"
+
+    env = cast("dict[str, str]", kwargs["env"])
+    assert env["PYTHONIOENCODING"] == "utf-8"
+    assert env["PYTHONUTF8"] == "1"
+
+
+def _assert_ruff_command(command: list[str]) -> None:
+    assert command[:5] == [
+        sys.executable,
+        "-m",
+        "ruff",
+        "check",
+        ".",
+    ]
+    assert "--exclude" in command
+    assert ".pixi" in command
+    assert "docs/build" in command
+
+
 def test_generate_diagnostics_docs_runs_ruff_and_mkdocs(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
@@ -67,16 +98,9 @@ def test_generate_diagnostics_docs_runs_ruff_and_mkdocs(
 
     def fake_run(
         command: list[str],
-        *,
-        cwd: Path,
-        check: bool,
-        capture_output: bool,
-        text: bool,
+        **kwargs: object,
     ) -> subprocess.CompletedProcess[str]:
-        assert cwd == tmp_path
-        assert check is False
-        assert capture_output is True
-        assert text is True
+        _assert_common_subprocess_kwargs(kwargs, expected_cwd=tmp_path)
 
         calls.append(command)
 
@@ -96,7 +120,7 @@ def test_generate_diagnostics_docs_runs_ruff_and_mkdocs(
 
     assert code == SUCCESS_CODE
     assert len(calls) == EXPECTED_CALL_COUNT
-    assert calls[0][-3:] == ["ruff", "check", "."]
+    _assert_ruff_command(calls[0])
     assert "--strict" in calls[1]
 
     assert "Ruff diagnostics" in diagnostics.ruff_output_file.read_text(
@@ -116,16 +140,9 @@ def test_generate_diagnostics_docs_returns_highest_exit_code(
 
     def fake_run(
         command: list[str],
-        *,
-        cwd: Path,
-        check: bool,
-        capture_output: bool,
-        text: bool,
+        **kwargs: object,
     ) -> subprocess.CompletedProcess[str]:
-        assert cwd == tmp_path
-        assert check is False
-        assert capture_output is True
-        assert text is True
+        _assert_common_subprocess_kwargs(kwargs, expected_cwd=tmp_path)
 
         return subprocess.CompletedProcess[str](
             args=command,
@@ -153,18 +170,12 @@ def test_generate_diagnostics_docs_can_disable_commands(
 
     def fake_run(
         command: list[str],
-        *,
-        cwd: Path,
-        check: bool,
-        capture_output: bool,
-        text: bool,
+        **kwargs: object,
     ) -> subprocess.CompletedProcess[str]:
-        assert cwd == tmp_path
-        assert check is False
-        assert capture_output is True
-        assert text is True
+        _assert_common_subprocess_kwargs(kwargs, expected_cwd=tmp_path)
 
         calls.append(command)
+
         return subprocess.CompletedProcess[str](
             args=command,
             returncode=SUCCESS_CODE,
@@ -207,18 +218,12 @@ def test_generate_diagnostics_docs_only_ruff_enabled(
 
     def fake_run(
         command: list[str],
-        *,
-        cwd: Path,
-        check: bool,
-        capture_output: bool,
-        text: bool,
+        **kwargs: object,
     ) -> subprocess.CompletedProcess[str]:
-        assert cwd == tmp_path
-        assert check is False
-        assert capture_output is True
-        assert text is True
+        _assert_common_subprocess_kwargs(kwargs, expected_cwd=tmp_path)
 
         calls.append(command)
+
         return subprocess.CompletedProcess[str](
             args=command,
             returncode=SUCCESS_CODE,
@@ -243,7 +248,7 @@ def test_generate_diagnostics_docs_only_ruff_enabled(
         diagnostics_generator.generate_diagnostics_docs(cfg, Console()) == SUCCESS_CODE
     )
     assert len(calls) == 1
-    assert calls[0][-3:] == ["ruff", "check", "."]
+    _assert_ruff_command(calls[0])
     assert diagnostics.ruff_output_file.exists()
     assert not diagnostics.mkdocs_output_file.exists()
 
@@ -257,18 +262,12 @@ def test_generate_diagnostics_docs_only_mkdocs_enabled(
 
     def fake_run(
         command: list[str],
-        *,
-        cwd: Path,
-        check: bool,
-        capture_output: bool,
-        text: bool,
+        **kwargs: object,
     ) -> subprocess.CompletedProcess[str]:
-        assert cwd == tmp_path
-        assert check is False
-        assert capture_output is True
-        assert text is True
+        _assert_common_subprocess_kwargs(kwargs, expected_cwd=tmp_path)
 
         calls.append(command)
+
         return subprocess.CompletedProcess[str](
             args=command,
             returncode=SUCCESS_CODE,
@@ -306,16 +305,10 @@ def test_generate_diagnostics_docs_handles_missing_command(
 
     def fake_run(
         command: list[str],
-        *,
-        cwd: Path,
-        check: bool,
-        capture_output: bool,
-        text: bool,
+        **kwargs: object,
     ) -> subprocess.CompletedProcess[str]:
-        assert cwd == tmp_path
-        assert check is False
-        assert capture_output is True
-        assert text is True
+        _assert_common_subprocess_kwargs(kwargs, expected_cwd=tmp_path)
+
         raise FileNotFoundError(command[0])
 
     monkeypatch.setattr(subprocess, "run", fake_run)
@@ -348,16 +341,10 @@ def test_generate_diagnostics_docs_handles_missing_mkdocs_command(
 
     def fake_run(
         command: list[str],
-        *,
-        cwd: Path,
-        check: bool,
-        capture_output: bool,
-        text: bool,
+        **kwargs: object,
     ) -> subprocess.CompletedProcess[str]:
-        assert cwd == tmp_path
-        assert check is False
-        assert capture_output is True
-        assert text is True
+        _assert_common_subprocess_kwargs(kwargs, expected_cwd=tmp_path)
+
         raise FileNotFoundError(command[0])
 
     monkeypatch.setattr(subprocess, "run", fake_run)

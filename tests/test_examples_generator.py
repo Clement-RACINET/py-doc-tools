@@ -132,9 +132,7 @@ def test_generate_examples_docs_skips_configured_files(tmp_path: Path) -> None:
 
     assert generate_examples_docs(cfg, Console()) == 0
     assert not (tmp_path / "docs" / "examples" / "skip.py.md").exists()
-    assert not (
-        tmp_path / "docs" / "examples" / "ignored" / "ignored.py.md"
-    ).exists()
+    assert not (tmp_path / "docs" / "examples" / "ignored" / "ignored.py.md").exists()
 
 
 def test_generate_examples_docs_asset_without_preview(tmp_path: Path) -> None:
@@ -173,6 +171,7 @@ def test_generate_examples_docs_missing_config(tmp_path: Path) -> None:
 
     with pytest.raises(MissingConfigSectionError, match="examples"):
         _ = generate_examples_docs(cfg, Console())
+
 
 def test_generate_examples_docs_preserves_folder_tree(tmp_path: Path) -> None:
     """Examples navigation preserves source folder hierarchy."""
@@ -227,9 +226,5 @@ nav:
 
     assert (tmp_path / "docs" / "examples" / "01" / "ping.py.md").exists()
     assert (tmp_path / "docs" / "examples" / "01" / "result.txt.md").exists()
-    assert (
-        tmp_path / "docs" / "examples" / "02" / "ExampleStartStop.mod.md"
-    ).exists()
-    assert (
-        tmp_path / "docs" / "examples" / "02" / "ExampleStartStop.pgf.md"
-    ).exists()
+    assert (tmp_path / "docs" / "examples" / "02" / "ExampleStartStop.mod.md").exists()
+    assert (tmp_path / "docs" / "examples" / "02" / "ExampleStartStop.pgf.md").exists()
