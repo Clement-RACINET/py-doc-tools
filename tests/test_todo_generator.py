@@ -206,3 +206,39 @@ def test_collect_todo_items_missing_config(tmp_path: Path) -> None:
 
     with pytest.raises(MissingConfigSectionError, match="todo"):
         _ = collect_todo_items(cfg)
+
+
+def test_collect_todo_items_routes_generated_mkdocs_tags(tmp_path: Path) -> None:
+    """TODO collector routes generated MkDocs tags to dedicated sections."""
+    src = tmp_path / "src"
+    src.mkdir()
+
+    file_path = src / "module.py"
+    content = "\n".join(
+        [
+            "# TODO[py-doc-tools:MkDocs:TYPING]: Missing type annotation",
+            "# FIXME[py-doc-tools:MkDocs:DOCFORMAT]: Bad docstring",
+            "# FIXME[py-doc-tools:MkDocs:FALLBACK]: Generic warning",
+            "",
+        ],
+    )
+    _ = file_path.write_text(content, encoding="utf-8")
+
+    cfg = _base_config(
+        tmp_path,
+        TodoConfig(
+            output_file=tmp_path / "docs" / "todo.md",
+            scan_roots=[src],
+            markers=["TODO", "FIXME"],
+            exclude_dirs=[],
+            exclude_files=[],
+            mode="sections",
+        ),
+    )
+
+    items = collect_todo_items(cfg)
+    sections = {item.text: item.section for item in items}
+
+    assert sections["[MKDOCS:TYPING] Missing type annotation"] == "MKDOCS_TYPING"
+    assert sections["[MKDOCS:DOCFORMAT] Bad docstring"] == "MKDOCS_DOCFORMAT"
+    assert sections["[MKDOCS:FALLBACK] Generic warning"] == "MKDOCS_FALLBACK"

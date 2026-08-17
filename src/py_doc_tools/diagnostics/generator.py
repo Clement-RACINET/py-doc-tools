@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-import os
-import subprocess
-import sys
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from py_doc_tools.core.exceptions import MissingConfigSectionError
+from py_doc_tools.diagnostics.mkdocs import (
+    build_mkdocs_command,
+    collect_mkdocs_issues,
+)
 from py_doc_tools.diagnostics.ruff import build_ruff_json_command, collect_ruff_issues
 from py_doc_tools.issues.model import DiagnosticIssue
 from py_doc_tools.tags.cleaner import clean_generated_source_tags
@@ -69,14 +70,15 @@ def generate_diagnostics_docs(cfg: DocToolsConfig, console: Console) -> int:
         if cfg.diagnostics.fail_on_ruff:
             exit_code = max(exit_code, ruff_code)
 
-    if can_inject_source_tags and collected_issues:
-        _ = inject_issues(cfg, console, collected_issues)
-
     if cfg.diagnostics.enable_mkdocs:
-        mkdocs_code = _generate_mkdocs_diagnostics(cfg, console)
+        mkdocs_issues, mkdocs_code = _generate_mkdocs_diagnostics(cfg, console)
+        collected_issues.extend(mkdocs_issues)
 
         if cfg.diagnostics.fail_on_mkdocs:
             exit_code = max(exit_code, mkdocs_code)
+
+    if can_inject_source_tags and collected_issues:
+        _ = inject_issues(cfg, console, collected_issues)
 
     return exit_code
 
@@ -137,25 +139,15 @@ def _generate_ruff_diagnostics(
 def _generate_mkdocs_diagnostics(
     cfg: DocToolsConfig,
     console: Console,
-) -> int:
+) -> tuple[list[DiagnosticIssue], int]:
     if cfg.diagnostics is None:
         msg = "diagnostics"
         raise MissingConfigSectionError(msg)
 
-    command = [
-        sys.executable,
-        "-m",
-        "mkdocs",
-        "build",
-        "-f",
-        str(cfg.mkdocs_config),
-    ]
-
-    if cfg.diagnostics.mkdocs_strict:
-        command.append("--strict")
+    command = build_mkdocs_command(cfg)
 
     try:
-        result = _run_text_command(command, cwd=cfg.project_root)
+        result = collect_mkdocs_issues(cfg)
     except FileNotFoundError as exc:
         cfg.diagnostics.mkdocs_output_file.parent.mkdir(
             parents=True,
@@ -175,63 +167,34 @@ def _generate_mkdocs_diagnostics(
         console.ok(
             f"MkDocs diagnostics generated: {cfg.diagnostics.mkdocs_output_file}",
         )
-        return COMMAND_NOT_FOUND_CODE
+        return [], COMMAND_NOT_FOUND_CODE
 
-    output = _combined_output(result.stdout, result.stderr)
     cfg.diagnostics.mkdocs_output_file.parent.mkdir(
         parents=True,
         exist_ok=True,
     )
 
     _ = cfg.diagnostics.mkdocs_output_file.write_text(
-        _render_command_output(
-            "MkDocs diagnostics",
-            output,
-            result.returncode,
-            command=command,
+        _render_issues_output(
+            IssuesOutputContext(
+                title="MkDocs diagnostics",
+                issues=result.issues,
+                raw_output=result.raw_output,
+                return_code=result.return_code,
+                command=result.command,
+                project_root=cfg.project_root,
+            ),
         ),
         encoding="utf-8",
     )
 
-    console.ok(
-        f"MkDocs diagnostics generated: {cfg.diagnostics.mkdocs_output_file}",
+    message = (
+        f"MkDocs diagnostics generated: {cfg.diagnostics.mkdocs_output_file} "
+        f"({len(result.issues)} issue(s))."
     )
-    return result.returncode
+    console.ok(message)
 
-
-def _run_text_command(
-    command: Sequence[str],
-    *,
-    cwd: Path,
-) -> subprocess.CompletedProcess[str]:
-    """Run a subprocess and capture text output robustly on all platforms."""
-    env = os.environ.copy()
-    env["PYTHONIOENCODING"] = "utf-8"
-    env["PYTHONUTF8"] = "1"
-
-    return subprocess.run(
-        list(command),
-        cwd=cwd,
-        env=env,
-        check=False,
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-    )
-
-
-def _combined_output(stdout: str, stderr: str) -> str:
-    if stdout and stderr:
-        return f"{stdout}\n{stderr}"
-
-    if stdout:
-        return stdout
-
-    if stderr:
-        return stderr
-
-    return "No output."
+    return result.issues, result.return_code
 
 
 def _command_error_output(message: str, exc: FileNotFoundError) -> str:

@@ -145,7 +145,7 @@ def _scan_file(file_path: Path, markers: list[str]) -> list[TodoItem]:
             if marker not in allowed_markers:
                 continue
 
-            section = _section_for_generated_source(source)
+            section = _section_for_generated_issue(source, code)
             items.append(
                 TodoItem(
                     marker=marker,
@@ -199,20 +199,28 @@ def _scan_file(file_path: Path, markers: list[str]) -> list[TodoItem]:
     return items
 
 
-def _section_for_generated_source(source: str) -> str:
-    normalized = source.upper()
+def _section_for_generated_issue(source: str, code: str) -> str:
+    """Return the TODO section for a generated diagnostic issue."""
+    normalized_source = source.upper()
+    normalized_code = code.upper()
 
-    if normalized == "RUFF":
-        return "RUFF"
+    direct_sections = {
+        "RUFF": "RUFF",
+        "BASEDPYRIGHT": "BASEDPYRIGHT",
+        "PYRIGHT": "BASEDPYRIGHT",
+        "PYTEST": "PYTEST",
+    }
 
-    if normalized in {"BASEDPYRIGHT", "PYRIGHT"}:
-        return "BASEDPYRIGHT"
+    if normalized_source in direct_sections:
+        return direct_sections[normalized_source]
 
-    if normalized == "PYTEST":
-        return "PYTEST"
+    mkdocs_sections = {
+        "TYPING": "MKDOCS_TYPING",
+        "DOCFORMAT": "MKDOCS_DOCFORMAT",
+    }
 
-    if normalized in {"MKDOCS", "MKDOC"}:
-        return "MKDOCS_FALLBACK"
+    if normalized_source in {"MKDOCS", "MKDOC"}:
+        return mkdocs_sections.get(normalized_code, "MKDOCS_FALLBACK")
 
     return "GENERAL_FALLBACK"
 

@@ -486,3 +486,47 @@ ruff_exclude_files = ["*.pyc", "*.pyo"]
     assert cfg.diagnostics.ruff_targets == ["src", "tests"]
     assert cfg.diagnostics.ruff_exclude_dirs == [".git", ".pixi", "docs"]
     assert cfg.diagnostics.ruff_exclude_files == ["*.pyc", "*.pyo"]
+
+
+def test_generate_diagnostics_docs_parses_mkdocs_issues(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """Diagnostics generator renders parsed MkDocs issues."""
+    source_file = tmp_path / "src" / "demo.py"
+    source_file.parent.mkdir()
+    _ = source_file.write_text("def demo(value):\n    return value\n", encoding="utf-8")
+
+    def fake_run(
+        command: list[str],
+        **kwargs: object,
+    ) -> subprocess.CompletedProcess[str]:
+        _assert_common_subprocess_kwargs(kwargs, expected_cwd=tmp_path)
+
+        return subprocess.CompletedProcess[str](
+            args=command,
+            returncode=SUCCESS_CODE,
+            stdout="WARNING -  src/demo.py:1: Missing type annotation\n",
+            stderr="",
+        )
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
+
+    diagnostics = _make_diagnostics_config(
+        output_dir=tmp_path / "docs" / "diagnostics",
+        ruff_output_file=tmp_path / "docs" / "diagnostics" / "ruff.md",
+        mkdocs_output_file=tmp_path / "docs" / "diagnostics" / "mkdocs.md",
+        enable_ruff=False,
+        enable_mkdocs=True,
+        mkdocs_strict=False,
+    )
+
+    cfg = _base_config(tmp_path, diagnostics)
+
+    code = diagnostics_generator.generate_diagnostics_docs(cfg, Console())
+
+    assert code == SUCCESS_CODE
+    content = diagnostics.mkdocs_output_file.read_text(encoding="utf-8")
+    assert "Parsed issues" in content
+    assert "`TYPING`" in content
+    assert "`src/demo.py`" in content
