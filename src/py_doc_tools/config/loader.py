@@ -37,7 +37,10 @@ from py_doc_tools.config.defaults import (
     DEFAULT_MKDOCS_OUTPUT_FILE,
     DEFAULT_README_OUTPUT_FILE,
     DEFAULT_README_SOURCE_FILE,
+    DEFAULT_RUFF_EXCLUDE_DIRS,
+    DEFAULT_RUFF_EXCLUDE_FILES,
     DEFAULT_RUFF_OUTPUT_FILE,
+    DEFAULT_RUFF_TARGETS,
     DEFAULT_TAG_END_TOKEN,
     DEFAULT_TAG_START_TOKEN,
     DEFAULT_TODO_MARKERS,
@@ -359,6 +362,21 @@ def _build_diagnostics_config(root: Path, table: TomlTable) -> DiagnosticsConfig
         enable_ruff=_bool(table, "enable_ruff", default=True),
         enable_mkdocs=_bool(table, "enable_mkdocs", default=True),
         mkdocs_strict=_bool(table, "mkdocs_strict", default=False),
+        ruff_targets=_string_list(
+            table,
+            "ruff_targets",
+            DEFAULT_RUFF_TARGETS,
+        ),
+        ruff_exclude_dirs=_string_list(
+            table,
+            "ruff_exclude_dirs",
+            DEFAULT_RUFF_EXCLUDE_DIRS,
+        ),
+        ruff_exclude_files=_string_list(
+            table,
+            "ruff_exclude_files",
+            DEFAULT_RUFF_EXCLUDE_FILES,
+        ),
     )
 
 

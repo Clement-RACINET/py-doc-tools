@@ -38,6 +38,33 @@ DEFAULT_DIAGNOSTICS_OUTPUT_DIR = "docs/diagnostics"
 DEFAULT_RUFF_OUTPUT_FILE = "docs/diagnostics/ruff.md"
 DEFAULT_MKDOCS_OUTPUT_FILE = "docs/diagnostics/mkdocs.md"
 
+DEFAULT_RUFF_TARGETS = ["src", "tests"]
+
+DEFAULT_RUFF_EXCLUDE_DIRS = [
+    ".git",
+    ".hg",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".tox",
+    ".venv",
+    "venv",
+    ".pixi",
+    "__pycache__",
+    "build",
+    "dist",
+    "docs/build",
+    "docs/src/api",
+    "docs/src/examples",
+    "docs/src/diagnostics",
+    "docs/src/diagrams",
+]
+
+DEFAULT_RUFF_EXCLUDE_FILES = [
+    "*.pyc",
+    "*.pyo",
+]
+
 DEFAULT_TAG_START_TOKEN = "# <pydocs>"
 DEFAULT_TAG_END_TOKEN = "# </pydocs>"
 

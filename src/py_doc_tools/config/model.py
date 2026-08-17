@@ -98,6 +98,9 @@ class DiagnosticsConfig:
     enable_ruff: bool = True
     enable_mkdocs: bool = True
     mkdocs_strict: bool = False
+    ruff_targets: list[str] = field(default_factory=list)
+    ruff_exclude_dirs: list[str] = field(default_factory=list)
+    ruff_exclude_files: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True, slots=True)

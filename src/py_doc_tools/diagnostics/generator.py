@@ -18,28 +18,6 @@ if TYPE_CHECKING:
 
 COMMAND_NOT_FOUND_CODE = 1
 
-DEFAULT_RUFF_TARGETS = [
-    ".",
-]
-
-DEFAULT_RUFF_EXCLUDE_PATTERNS = [
-    ".git",
-    ".hg",
-    ".mypy_cache",
-    ".pytest_cache",
-    ".ruff_cache",
-    ".tox",
-    ".venv",
-    "venv",
-    ".pixi",
-    "__pycache__",
-    "docs/build",
-    "docs/src/api",
-    "docs/src/examples",
-    "docs/src/diagnostics",
-    "docs/src/diagrams",
-]
-
 
 def generate_diagnostics_docs(cfg: DocToolsConfig, console: Console) -> int:
     """Generate diagnostics Markdown pages."""
@@ -68,7 +46,7 @@ def _generate_ruff_diagnostics(
         msg = "diagnostics"
         raise MissingConfigSectionError(msg)
 
-    command = _build_ruff_command()
+    command = _build_ruff_command(cfg)
 
     try:
         result = _run_text_command(command, cwd=cfg.project_root)
@@ -197,20 +175,55 @@ def _run_text_command(
     )
 
 
-def _build_ruff_command() -> list[str]:
-    """Build the Ruff diagnostics command."""
+def _build_ruff_command(cfg: DocToolsConfig) -> list[str]:
+    """Build the Ruff diagnostics command from configuration."""
+    if cfg.diagnostics is None:
+        msg = "diagnostics"
+        raise MissingConfigSectionError(msg)
+
+    targets = _deduplicate_preserving_order(cfg.diagnostics.ruff_targets)
+
     command = [
         sys.executable,
         "-m",
         "ruff",
         "check",
-        *DEFAULT_RUFF_TARGETS,
+        *targets,
     ]
 
-    for pattern in DEFAULT_RUFF_EXCLUDE_PATTERNS:
+    for pattern in _ruff_exclude_patterns(cfg):
         command.extend(["--exclude", pattern])
 
     return command
+
+
+def _ruff_exclude_patterns(cfg: DocToolsConfig) -> list[str]:
+    """Return configured Ruff exclude patterns."""
+    if cfg.diagnostics is None:
+        msg = "diagnostics"
+        raise MissingConfigSectionError(msg)
+
+    return _deduplicate_preserving_order(
+        [
+            *cfg.diagnostics.ruff_exclude_dirs,
+            *cfg.diagnostics.ruff_exclude_files,
+        ],
+    )
+
+
+def _deduplicate_preserving_order(items: Sequence[str]) -> list[str]:
+    """Remove duplicates while preserving input order."""
+    seen: set[str] = set()
+    result: list[str] = []
+
+    for item in items:
+        if item in seen:
+            continue
+
+        seen.add(item)
+        result.append(item)
+
+    return result
 
 
 def _combined_output(stdout: str, stderr: str) -> str:

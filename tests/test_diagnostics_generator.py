@@ -4,11 +4,13 @@ from __future__ import annotations
 
 import subprocess
 import sys
+from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
 import pytest
 
 import py_doc_tools.diagnostics.generator as diagnostics_generator
+from py_doc_tools.config.loader import load_config
 from py_doc_tools.config.model import DiagnosticsConfig, DocToolsConfig
 from py_doc_tools.core.console import Console
 from py_doc_tools.core.exceptions import MissingConfigSectionError
@@ -56,6 +58,9 @@ def _diagnostics_config(tmp_path: Path) -> DiagnosticsConfig:
         enable_ruff=True,
         enable_mkdocs=True,
         mkdocs_strict=True,
+        ruff_targets=["src", "tests"],
+        ruff_exclude_dirs=[".git", ".pixi", "docs/build"],
+        ruff_exclude_files=["*.pyc"],
     )
 
 
@@ -82,11 +87,14 @@ def _assert_ruff_command(command: list[str]) -> None:
         "-m",
         "ruff",
         "check",
-        ".",
+        "src",
     ]
+    assert "tests" in command
     assert "--exclude" in command
+    assert ".git" in command
     assert ".pixi" in command
     assert "docs/build" in command
+    assert "*.pyc" in command
 
 
 def test_generate_diagnostics_docs_runs_ruff_and_mkdocs(
@@ -240,6 +248,9 @@ def test_generate_diagnostics_docs_only_ruff_enabled(
         enable_ruff=True,
         enable_mkdocs=False,
         mkdocs_strict=False,
+        ruff_targets=["src", "tests"],
+        ruff_exclude_dirs=[".git", ".pixi", "docs/build"],
+        ruff_exclude_files=["*.pyc"],
     )
 
     cfg = _base_config(tmp_path, diagnostics)
@@ -367,3 +378,34 @@ def test_generate_diagnostics_docs_handles_missing_mkdocs_command(
     assert "could not be executed" in diagnostics.mkdocs_output_file.read_text(
         encoding="utf-8",
     )
+
+
+def test_load_diagnostics_config_reads_ruff_options(tmp_path: Path) -> None:
+    """Diagnostics configuration reads Ruff targets and exclude patterns."""
+    pyproject = tmp_path / "pyproject.toml"
+
+    _ = pyproject.write_text(
+        """
+[tool.py-doc-tools]
+enable_diagnostics = true
+
+[tool.py-doc-tools.diagnostics]
+output_dir = "docs/diagnostics"
+ruff_output_file = "docs/diagnostics/ruff.md"
+mkdocs_output_file = "docs/diagnostics/mkdocs.md"
+enable_ruff = true
+enable_mkdocs = false
+mkdocs_strict = false
+ruff_targets = ["src", "tests"]
+ruff_exclude_dirs = [".git", ".pixi", "docs"]
+ruff_exclude_files = ["*.pyc", "*.pyo"]
+""",
+        encoding="utf-8",
+    )
+
+    cfg = load_config(tmp_path)
+
+    assert cfg.diagnostics is not None
+    assert cfg.diagnostics.ruff_targets == ["src", "tests"]
+    assert cfg.diagnostics.ruff_exclude_dirs == [".git", ".pixi", "docs"]
+    assert cfg.diagnostics.ruff_exclude_files == ["*.pyc", "*.pyo"]
