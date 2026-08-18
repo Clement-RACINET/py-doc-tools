@@ -55,7 +55,7 @@ def test_cli_dispatch_generate_all(
         clean_command=None,
     )
 
-    cli.dispatch(args, _base_config(tmp_path), Console())
+    _ = cli.dispatch(args, _base_config(tmp_path), Console())
 
     assert calls == ["all"]
 
@@ -87,7 +87,7 @@ def test_cli_dispatch_generate_coverage(
         clean_command=None,
     )
 
-    cli.dispatch(args, _base_config(tmp_path), Console())
+    _ = cli.dispatch(args, _base_config(tmp_path), Console())
 
     assert calls == ["coverage"]
 
@@ -119,7 +119,7 @@ def test_cli_dispatch_generate_api(
         clean_command=None,
     )
 
-    cli.dispatch(args, _base_config(tmp_path), Console())
+    _ = cli.dispatch(args, _base_config(tmp_path), Console())
 
     assert calls == ["api"]
 
@@ -139,7 +139,7 @@ def test_cli_dispatch_generate_without_target(tmp_path: Path) -> None:
     )
 
     with pytest.raises(SystemExit, match="No generation target selected"):
-        cli.dispatch(args, _base_config(tmp_path), Console())
+        _ = cli.dispatch(args, _base_config(tmp_path), Console())
 
 
 def test_cli_dispatch_mkdocs_build(
@@ -175,7 +175,7 @@ def test_cli_dispatch_mkdocs_build(
     )
 
     with pytest.raises(SystemExit) as exc_info:
-        cli.dispatch(args, _base_config(tmp_path), Console())
+        _ = cli.dispatch(args, _base_config(tmp_path), Console())
 
     assert exc_info.value.code == MKDOCS_BUILD_EXIT_CODE
 
@@ -207,7 +207,7 @@ def test_cli_dispatch_mkdocs_serve(
     )
 
     with pytest.raises(SystemExit) as exc_info:
-        cli.dispatch(args, _base_config(tmp_path), Console())
+        _ = cli.dispatch(args, _base_config(tmp_path), Console())
 
     assert exc_info.value.code == MKDOCS_SERVE_EXIT_CODE
 
@@ -227,7 +227,7 @@ def test_cli_dispatch_unknown_mkdocs_command(tmp_path: Path) -> None:
     )
 
     with pytest.raises(SystemExit, match="Unknown mkdocs command"):
-        cli.dispatch(args, _base_config(tmp_path), Console())
+        _ = cli.dispatch(args, _base_config(tmp_path), Console())
 
 
 def test_cli_dispatch_clean_api(tmp_path: Path) -> None:
@@ -251,7 +251,7 @@ def test_cli_dispatch_clean_api(tmp_path: Path) -> None:
         clean_command="api",
     )
 
-    cli.dispatch(args, cfg, Console())
+    _ = cli.dispatch(args, cfg, Console())
 
     assert not cfg.api.output_dir.exists()
 
@@ -271,7 +271,7 @@ def test_cli_unknown_command(tmp_path: Path) -> None:
     )
 
     with pytest.raises(SystemExit, match="Unknown command"):
-        cli.dispatch(args, _base_config(tmp_path), Console())
+        _ = cli.dispatch(args, _base_config(tmp_path), Console())
 
 
 def test_cli_clean_api_missing_config(tmp_path: Path) -> None:
@@ -298,7 +298,7 @@ def test_cli_clean_api_missing_config(tmp_path: Path) -> None:
     )
 
     with pytest.raises(SystemExit, match="API configuration is missing"):
-        cli.dispatch(args, cfg, Console())
+        _ = cli.dispatch(args, cfg, Console())
 
 
 def test_cli_unknown_clean_command(tmp_path: Path) -> None:
@@ -316,4 +316,4 @@ def test_cli_unknown_clean_command(tmp_path: Path) -> None:
     )
 
     with pytest.raises(SystemExit, match="Unknown clean command"):
-        cli.dispatch(args, _base_config(tmp_path), Console())
+        _ = cli.dispatch(args, _base_config(tmp_path), Console())

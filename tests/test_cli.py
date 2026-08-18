@@ -46,6 +46,6 @@ exclude_files = ["__init__.py"]
         encoding="utf-8",
     )
 
-    main(["--root", str(tmp_path), "generate", "--api"])
+    _ = main(["--root", str(tmp_path), "generate", "--api"])
 
     assert (tmp_path / "docs" / "api" / "demo" / "module.md").exists()
