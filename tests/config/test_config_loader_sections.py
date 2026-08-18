@@ -101,6 +101,7 @@ include_private = true
     assert cfg.diagrams.title == "Classes"
     assert cfg.diagrams.include_private
 
+
 def test_examples_config_defaults_to_directory_mode(tmp_path: Path) -> None:
     """Examples config defaults to directory mode and standard folder conventions."""
     pyproject = tmp_path / "pyproject.toml"
@@ -127,6 +128,7 @@ def test_examples_config_defaults_to_directory_mode(tmp_path: Path) -> None:
     assert cfg.examples.folder_doc_filename == "__doc__.md"
     assert cfg.examples.input_dir_suffix == ".inputs"
     assert cfg.examples.output_dir_suffix == ".outputs"
+
 
 def test_examples_config_loads_file_mode(tmp_path: Path) -> None:
     """Examples config can explicitly enable legacy file mode."""

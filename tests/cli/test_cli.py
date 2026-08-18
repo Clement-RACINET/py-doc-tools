@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 
 SUCCESS_CODE = 0
 
+
 def test_cli_generate_api(tmp_path: Path) -> None:
     """The CLI can generate API docs."""
     package_dir = tmp_path / "demo"
@@ -50,6 +51,7 @@ exclude_files = ["__init__.py"]
     _ = main(["--root", str(tmp_path), "generate", "--api"])
 
     assert (tmp_path / "docs" / "api" / "demo" / "module.md").exists()
+
 
 def test_cli_tags_clean_write(tmp_path: Path) -> None:
     """The CLI can remove generated source tags."""

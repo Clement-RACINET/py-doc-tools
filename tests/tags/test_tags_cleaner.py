@@ -104,10 +104,7 @@ def test_clean_generated_tags_in_file_writes_changes(tmp_path: Path) -> None:
 def test_clean_generated_tags_in_file_dry_run_preserves_file(tmp_path: Path) -> None:
     """Dry-run reports removals without modifying the file."""
     file_path = tmp_path / "module.py"
-    original = (
-        "# FIXME[py-doc-tools:Ruff:T201]: generated\n"
-        "print('hello')\n"
-    )
+    original = "# FIXME[py-doc-tools:Ruff:T201]: generated\nprint('hello')\n"
     _ = file_path.write_text(original, encoding="utf-8")
 
     removed = clean_generated_tags_in_file(
@@ -126,10 +123,7 @@ def test_clean_generated_source_tags_result_dry_run(tmp_path: Path) -> None:
     src.mkdir()
 
     file_path = src / "module.py"
-    original = (
-        "# FIXME[py-doc-tools:Ruff:T201]: generated\n"
-        "print('hello')\n"
-    )
+    original = "# FIXME[py-doc-tools:Ruff:T201]: generated\nprint('hello')\n"
     _ = file_path.write_text(original, encoding="utf-8")
 
     cfg = _base_config(

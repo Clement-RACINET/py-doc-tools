@@ -63,8 +63,7 @@ def is_generated_tag_line(line: str, *, clean_legacy: bool = True) -> bool:
         return False
 
     return any(
-        pattern.search(normalized)
-        for pattern in LEGACY_GENERATED_TAG_LINE_PATTERNS
+        pattern.search(normalized) for pattern in LEGACY_GENERATED_TAG_LINE_PATTERNS
     )
 
 

@@ -319,6 +319,7 @@ def test_cli_unknown_clean_command(tmp_path: Path) -> None:
     with pytest.raises(SystemExit, match="Unknown clean command"):
         _ = cli.dispatch(args, _base_config(tmp_path), Console())
 
+
 def test_cli_dispatch_tags_clean_dry_run(
     monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,

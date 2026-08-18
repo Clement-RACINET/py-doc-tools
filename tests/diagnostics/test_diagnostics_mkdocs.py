@@ -11,15 +11,14 @@ if TYPE_CHECKING:
 
 MULTILINE_WARNING_LINE = 12
 
+
 def test_parse_mkdocs_output_extracts_typing_issue(tmp_path: Path) -> None:
     """MkDocs parser extracts typing-related diagnostics."""
     source_file = tmp_path / "src" / "demo.py"
     source_file.parent.mkdir()
     _ = source_file.write_text("def demo(value):\n    return value\n", encoding="utf-8")
 
-    output = (
-        "WARNING -  src/demo.py:1: Missing type annotation for parameter `value`\n"
-    )
+    output = "WARNING -  src/demo.py:1: Missing type annotation for parameter `value`\n"
 
     issues = parse_mkdocs_output(output, project_root=tmp_path)
 
