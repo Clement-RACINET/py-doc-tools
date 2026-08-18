@@ -100,3 +100,55 @@ include_private = true
     assert cfg.diagrams is not None
     assert cfg.diagrams.title == "Classes"
     assert cfg.diagrams.include_private
+
+def test_examples_config_defaults_to_directory_mode(tmp_path: Path) -> None:
+    """Examples config defaults to directory mode and standard folder conventions."""
+    pyproject = tmp_path / "pyproject.toml"
+    _ = pyproject.write_text(
+        "\n".join(
+            [
+                "[tool.py-doc-tools]",
+                "enable_examples = true",
+                "",
+                "[tool.py-doc-tools.examples]",
+                'source_dir = "examples"',
+                'output_dir = "docs/src/examples"',
+                'assets_dir = "docs/src/examples/assets"',
+                "",
+            ],
+        ),
+        encoding="utf-8",
+    )
+
+    cfg = load_config(tmp_path)
+
+    assert cfg.examples is not None
+    assert cfg.examples.mode == "directory"
+    assert cfg.examples.folder_doc_filename == "__doc__.md"
+    assert cfg.examples.input_dir_suffix == ".inputs"
+    assert cfg.examples.output_dir_suffix == ".outputs"
+
+def test_examples_config_loads_file_mode(tmp_path: Path) -> None:
+    """Examples config can explicitly enable legacy file mode."""
+    pyproject = tmp_path / "pyproject.toml"
+    _ = pyproject.write_text(
+        "\n".join(
+            [
+                "[tool.py-doc-tools]",
+                "enable_examples = true",
+                "",
+                "[tool.py-doc-tools.examples]",
+                'mode = "file"',
+                'source_dir = "examples"',
+                'output_dir = "docs/src/examples"',
+                'assets_dir = "docs/src/examples/assets"',
+                "",
+            ],
+        ),
+        encoding="utf-8",
+    )
+
+    cfg = load_config(tmp_path)
+
+    assert cfg.examples is not None
+    assert cfg.examples.mode == "file"

@@ -294,6 +294,7 @@ def _build_examples_config(root: Path, table: TomlTable) -> ExamplesConfig:
             root,
             _string(table, "assets_dir", DEFAULT_EXAMPLES_ASSETS_DIR),
         ),
+        mode=_string(table, "mode", "directory"),
         nav_start_marker=_string(
             table,
             "nav_start_marker",
@@ -320,6 +321,9 @@ def _build_examples_config(root: Path, table: TomlTable) -> ExamplesConfig:
             "asset_extensions",
             DEFAULT_EXAMPLES_ASSET_EXTENSIONS,
         ),
+        folder_doc_filename=_string(table, "folder_doc_filename", "__doc__.md"),
+        input_dir_suffix=_string(table, "input_dir_suffix", ".inputs"),
+        output_dir_suffix=_string(table, "output_dir_suffix", ".outputs"),
     )
 
 

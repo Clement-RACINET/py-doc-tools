@@ -53,16 +53,27 @@ class ExamplesConfig:
     source_dir: Path
     output_dir: Path
     assets_dir: Path
+
+    mode: str = "directory"
+
     nav_start_marker: str = "# --- AUTOGEN_EXAMPLES_START ---"
     nav_end_marker: str = "# --- AUTOGEN_EXAMPLES_END ---"
+
     overview_enabled: bool = True
+
     copy_assets: bool = True
     show_image_previews: bool = True
     preview_max_width_px: int = 800
+
     clean_output_dir: bool = True
+
     skip_dirs: list[str] = field(default_factory=list)
     skip_files: list[str] = field(default_factory=list)
     asset_extensions: list[str] = field(default_factory=list)
+
+    folder_doc_filename: str = "__doc__.md"
+    input_dir_suffix: str = ".inputs"
+    output_dir_suffix: str = ".outputs"
 
 
 @dataclass(frozen=True, slots=True)

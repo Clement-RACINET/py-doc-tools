@@ -28,11 +28,12 @@ def _make_examples_config(**kwargs: object) -> ExamplesConfig:
     return config_cls(**kwargs)
 
 
-def _examples_config(tmp_path: Path) -> ExamplesConfig:
+def _examples_config(tmp_path: Path, *, mode: str = "directory") -> ExamplesConfig:
     return _make_examples_config(
         source_dir=tmp_path / "examples",
         output_dir=tmp_path / "docs" / "examples",
         assets_dir=tmp_path / "docs" / "examples" / "assets",
+        mode=mode,
         nav_start_marker="# --- AUTOGEN_EXAMPLES_START ---",
         nav_end_marker="# --- AUTOGEN_EXAMPLES_END ---",
         overview_enabled=True,
@@ -43,6 +44,9 @@ def _examples_config(tmp_path: Path) -> ExamplesConfig:
         skip_dirs=["ignored"],
         skip_files=["skip.py"],
         asset_extensions=[".png"],
+        folder_doc_filename="__doc__.md",
+        input_dir_suffix=".inputs",
+        output_dir_suffix=".outputs",
     )
 
 
@@ -81,7 +85,7 @@ nav:
         encoding="utf-8",
     )
 
-    cfg = _base_config(tmp_path, _examples_config(tmp_path))
+    cfg = _base_config(tmp_path, _examples_config(tmp_path, mode="file"))
 
     code = generate_examples_docs(cfg, Console())
 
@@ -97,7 +101,7 @@ nav:
 
 def test_generate_examples_docs_missing_source(tmp_path: Path) -> None:
     """Missing examples source is skipped gracefully."""
-    cfg = _base_config(tmp_path, _examples_config(tmp_path))
+    cfg = _base_config(tmp_path, _examples_config(tmp_path, mode="file"))
 
     examples = cfg.examples
     assert examples is not None
@@ -112,7 +116,7 @@ def test_generate_examples_docs_without_mkdocs_file(tmp_path: Path) -> None:
     examples_dir.mkdir()
     _ = (examples_dir / "demo.txt").write_text("hello\n", encoding="utf-8")
 
-    cfg = _base_config(tmp_path, _examples_config(tmp_path))
+    cfg = _base_config(tmp_path, _examples_config(tmp_path, mode="file"))
 
     assert generate_examples_docs(cfg, Console()) == 0
     assert (tmp_path / "docs" / "examples" / "demo.txt.md").exists()
@@ -128,7 +132,7 @@ def test_generate_examples_docs_skips_configured_files(tmp_path: Path) -> None:
     _ = (examples_dir / "skip.py").write_text("print('skip')\n", encoding="utf-8")
     _ = (ignored_dir / "ignored.py").write_text("print('ignored')\n", encoding="utf-8")
 
-    cfg = _base_config(tmp_path, _examples_config(tmp_path))
+    cfg = _base_config(tmp_path, _examples_config(tmp_path, mode="file"))
 
     assert generate_examples_docs(cfg, Console()) == 0
     assert not (tmp_path / "docs" / "examples" / "skip.py.md").exists()
@@ -141,11 +145,12 @@ def test_generate_examples_docs_asset_without_preview(tmp_path: Path) -> None:
     examples_dir.mkdir()
     _ = (examples_dir / "image.png").write_bytes(b"fake image")
 
-    examples_cfg = _examples_config(tmp_path)
+    examples_cfg = _examples_config(tmp_path, mode="file")
     examples_cfg = _make_examples_config(
         source_dir=examples_cfg.source_dir,
         output_dir=examples_cfg.output_dir,
         assets_dir=examples_cfg.assets_dir,
+        mode="file",
         nav_start_marker=examples_cfg.nav_start_marker,
         nav_end_marker=examples_cfg.nav_end_marker,
         overview_enabled=False,
@@ -156,6 +161,9 @@ def test_generate_examples_docs_asset_without_preview(tmp_path: Path) -> None:
         skip_dirs=[],
         skip_files=[],
         asset_extensions=[".png"],
+        folder_doc_filename=examples_cfg.folder_doc_filename,
+        input_dir_suffix=examples_cfg.input_dir_suffix,
+        output_dir_suffix=examples_cfg.output_dir_suffix,
     )
 
     cfg = _base_config(tmp_path, examples_cfg)
@@ -206,7 +214,7 @@ nav:
         encoding="utf-8",
     )
 
-    cfg = _base_config(tmp_path, _examples_config(tmp_path))
+    cfg = _base_config(tmp_path, _examples_config(tmp_path, mode="file"))
 
     assert generate_examples_docs(cfg, Console()) == 0
 
@@ -228,3 +236,180 @@ nav:
     assert (tmp_path / "docs" / "examples" / "01" / "result.txt.md").exists()
     assert (tmp_path / "docs" / "examples" / "02" / "ExampleStartStop.mod.md").exists()
     assert (tmp_path / "docs" / "examples" / "02" / "ExampleStartStop.pgf.md").exists()
+
+
+def test_generate_examples_docs_directory_mode_uses_folder_doc_as_description(
+    tmp_path: Path,
+) -> None:
+    """Directory mode uses __doc__.md as page content but does not expose it."""
+    example_dir = tmp_path / "examples" / "trajectory" / "ik" / "kuka_dls_circle"
+    example_dir.mkdir(parents=True)
+
+    _ = (example_dir / "__doc__.md").write_text(
+        "This example demonstrates DLS inverse kinematics.\n",
+        encoding="utf-8",
+    )
+    _ = (example_dir / "kuka_dls_circle.py").write_text(
+        "print('run kuka dls circle')\n",
+        encoding="utf-8",
+    )
+
+    (tmp_path / "docs").mkdir()
+    _ = (tmp_path / "mkdocs.yml").write_text(
+        """
+site_name: Demo
+nav:
+  - Examples:
+      # --- AUTOGEN_EXAMPLES_START ---
+      # --- AUTOGEN_EXAMPLES_END ---
+""".lstrip(),
+        encoding="utf-8",
+    )
+
+    cfg = _base_config(tmp_path, _examples_config(tmp_path))
+
+    assert generate_examples_docs(cfg, Console()) == 0
+
+    page = tmp_path / "docs" / "examples" / "trajectory" / "ik" / "kuka_dls_circle.md"
+    assert page.exists()
+
+    page_content = page.read_text(encoding="utf-8")
+    assert "## Description" in page_content
+    assert "This example demonstrates DLS inverse kinematics." in page_content
+    assert "## Main script" in page_content
+    assert "python examples/trajectory/ik/kuka_dls_circle/kuka_dls_circle.py" in (
+        page_content
+    )
+
+    assert not (
+        tmp_path
+        / "docs"
+        / "examples"
+        / "trajectory"
+        / "ik"
+        / "kuka_dls_circle"
+        / "__doc__.md"
+    ).exists()
+
+    mkdocs_content = (tmp_path / "mkdocs.yml").read_text(encoding="utf-8")
+    assert "__doc__" not in mkdocs_content
+    assert ".py.md" not in mkdocs_content
+    assert "Kuka Dls Circle: examples/trajectory/ik/kuka_dls_circle.md" in (
+        mkdocs_content
+    )
+
+
+def test_generate_examples_docs_directory_mode_copies_inputs_outputs(
+    tmp_path: Path,
+) -> None:
+    """Directory mode copies IO assets and renders relative download links."""
+    example_dir = tmp_path / "examples" / "trajectory" / "ik" / "demo"
+    input_dir = example_dir / "demo.inputs" / "configs"
+    output_dir = example_dir / "demo.outputs" / "images"
+
+    input_dir.mkdir(parents=True)
+    output_dir.mkdir(parents=True)
+
+    _ = (example_dir / "demo.py").write_text("print('demo')\n", encoding="utf-8")
+    _ = (input_dir / "params.json").write_text('{"gain": 1.0}\n', encoding="utf-8")
+    _ = (output_dir / "result.png").write_bytes(b"fake image")
+
+    cfg = _base_config(tmp_path, _examples_config(tmp_path))
+
+    assert generate_examples_docs(cfg, Console()) == 0
+
+    page = tmp_path / "docs" / "examples" / "trajectory" / "ik" / "demo.md"
+    assert page.exists()
+
+    copied_input = (
+        tmp_path
+        / "docs"
+        / "examples"
+        / "assets"
+        / "trajectory"
+        / "ik"
+        / "demo"
+        / "inputs"
+        / "configs"
+        / "params.json"
+    )
+    copied_output = (
+        tmp_path
+        / "docs"
+        / "examples"
+        / "assets"
+        / "trajectory"
+        / "ik"
+        / "demo"
+        / "outputs"
+        / "images"
+        / "result.png"
+    )
+
+    assert copied_input.exists()
+    assert copied_output.exists()
+
+    content = page.read_text(encoding="utf-8")
+    assert "## Inputs" in content
+    assert "## Outputs" in content
+    expected_input_link = "".join(
+        [
+            "[`params.json`]",
+            "(../../assets/trajectory/ik/demo/inputs/configs/params.json)",
+        ],
+    )
+    expected_output_link = "".join(
+        [
+            "[`result.png`]",
+            "(../../assets/trajectory/ik/demo/outputs/images/result.png)",
+        ],
+    )
+    expected_preview = "".join(
+        [
+            '<img src="',
+            "../../assets/trajectory/ik/demo/outputs/images/result.png",
+            '"',
+        ],
+    )
+
+    assert expected_input_link in content
+    assert expected_output_link in content
+    assert expected_preview in content
+
+
+def test_generate_examples_docs_directory_mode_generates_overview_tree(
+    tmp_path: Path,
+) -> None:
+    """Directory mode writes an overview with folder nodes and page links."""
+    example_dir = tmp_path / "examples" / "trajectory" / "smm" / "synthetic"
+    example_dir.mkdir(parents=True)
+
+    synthetic_script = example_dir / "synthetic.py"
+    _ = synthetic_script.write_text(
+        "print('synthetic')\n",
+        encoding="utf-8",
+    )
+
+    cfg = _base_config(tmp_path, _examples_config(tmp_path))
+
+    assert generate_examples_docs(cfg, Console()) == 0
+
+    overview = tmp_path / "docs" / "examples" / "index.md"
+    assert overview.exists()
+
+    content = overview.read_text(encoding="utf-8")
+    assert "- 📂 **Trajectory**" in content
+    assert "- 📂 **Smm**" in content
+    assert "- 📃 [Synthetic](trajectory/smm/synthetic.md)" in content
+
+
+def test_generate_examples_docs_rejects_unknown_examples_mode(tmp_path: Path) -> None:
+    """Invalid examples generation modes fail explicitly."""
+    examples_dir = tmp_path / "examples"
+    examples_dir.mkdir()
+
+    examples_cfg = _examples_config(tmp_path, mode="invalid")
+    cfg = _base_config(tmp_path, examples_cfg)
+
+    with pytest.raises(ValueError, match="Unsupported examples generation mode"):
+        _ = generate_examples_docs(cfg, Console())
