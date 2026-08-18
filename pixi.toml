@@ -33,9 +33,19 @@ tests = "pytest"
 check = { depends-on = ["fmt", "lint", "typecheck", "tests"] }
 
 pydocs = "pydocs"
+
 docs-diagnostics = "pydocs generate --diagnostics"
 docs-todo = "pydocs generate --todo"
 docs-all = "pydocs generate --all"
+
+docs-tags-inject = "pydocs tags inject"
+docs-tags-inject-dry = "pydocs tags inject --dry-run"
+docs-tags-inject-write = "pydocs tags inject --write"
+
+docs-tags-clean = "pydocs tags clean"
+docs-tags-clean-dry = "pydocs tags clean --dry-run"
+docs-tags-clean-write = "pydocs tags clean --write"
+
 docs-build = "mkdocs build"
 docs-build-strict = "mkdocs build --strict"
 
@@ -43,3 +53,6 @@ pystructure = "pystructure"
 structure = "pystructure tree --root ."
 structure-export = "pystructure export --root ."
 structure-export-all = "pystructure export --root . --formats all"
+
+docs-check = { depends-on = ["docs-diagnostics", "docs-todo", "docs-build"] }
+docs-clean-tags-and-regenerate = { depends-on = ["docs-tags-clean-write", "docs-diagnostics", "docs-todo"] }
