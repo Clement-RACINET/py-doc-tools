@@ -15,6 +15,7 @@ if TYPE_CHECKING:
 
 MKDOCS_BUILD_EXIT_CODE = 7
 MKDOCS_SERVE_EXIT_CODE = 3
+SUCCESS_CODE = 0
 
 
 def _base_config(tmp_path: Path) -> DocToolsConfig:
@@ -316,4 +317,122 @@ def test_cli_unknown_clean_command(tmp_path: Path) -> None:
     )
 
     with pytest.raises(SystemExit, match="Unknown clean command"):
+        _ = cli.dispatch(args, _base_config(tmp_path), Console())
+
+def test_cli_dispatch_tags_clean_dry_run(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """CLI dispatches tags clean in dry-run mode by default."""
+    calls: list[bool | None] = []
+
+    def fake_clean_generated_source_tags(
+        cfg: DocToolsConfig,
+        console: Console,
+        *,
+        dry_run: bool | None = None,
+    ) -> int:
+        assert cfg.project_root == tmp_path
+        assert isinstance(console, Console)
+        calls.append(dry_run)
+        return SUCCESS_CODE
+
+    monkeypatch.setattr(
+        cli,
+        "clean_generated_source_tags",
+        fake_clean_generated_source_tags,
+    )
+
+    args = cli.CliArgs(
+        root=tmp_path,
+        verbose=False,
+        command="tags",
+        tags_command="clean",
+        write=False,
+        dry_run=False,
+    )
+
+    code = cli.dispatch(args, _base_config(tmp_path), Console())
+
+    assert code == SUCCESS_CODE
+    assert calls == [True]
+
+
+def test_cli_dispatch_tags_clean_write(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """CLI dispatches tags clean in write mode."""
+    calls: list[bool | None] = []
+
+    def fake_clean_generated_source_tags(
+        cfg: DocToolsConfig,
+        console: Console,
+        *,
+        dry_run: bool | None = None,
+    ) -> int:
+        assert cfg.project_root == tmp_path
+        assert isinstance(console, Console)
+        calls.append(dry_run)
+        return SUCCESS_CODE
+
+    monkeypatch.setattr(
+        cli,
+        "clean_generated_source_tags",
+        fake_clean_generated_source_tags,
+    )
+
+    args = cli.CliArgs(
+        root=tmp_path,
+        verbose=False,
+        command="tags",
+        tags_command="clean",
+        write=True,
+        dry_run=False,
+    )
+
+    code = cli.dispatch(args, _base_config(tmp_path), Console())
+
+    assert code == SUCCESS_CODE
+    assert calls == [False]
+
+
+def test_cli_dispatch_tags_inject(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    """CLI dispatches tags inject."""
+    calls: list[str] = []
+
+    def fake_inject_source_tags(cfg: DocToolsConfig, console: Console) -> int:
+        assert cfg.project_root == tmp_path
+        assert isinstance(console, Console)
+        calls.append("inject")
+        return SUCCESS_CODE
+
+    monkeypatch.setattr(cli, "inject_source_tags", fake_inject_source_tags)
+
+    args = cli.CliArgs(
+        root=tmp_path,
+        verbose=False,
+        command="tags",
+        tags_command="inject",
+    )
+
+    code = cli.dispatch(args, _base_config(tmp_path), Console())
+
+    assert code == SUCCESS_CODE
+    assert calls == ["inject"]
+
+
+def test_cli_dispatch_unknown_tags_command(tmp_path: Path) -> None:
+    """CLI exits on unknown tags command."""
+    args = cli.CliArgs(
+        root=tmp_path,
+        verbose=False,
+        command="tags",
+        tags_command="unknown",
+    )
+
+    with pytest.raises(SystemExit, match="Unknown tags command"):
         _ = cli.dispatch(args, _base_config(tmp_path), Console())

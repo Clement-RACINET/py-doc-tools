@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 import shutil
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import TYPE_CHECKING, Protocol, cast
 
@@ -20,6 +20,7 @@ from py_doc_tools.pipeline.runner import (
     generate_coverage,
 )
 from py_doc_tools.readme.generator import generate_readme_docs
+from py_doc_tools.tags.cleaner import clean_generated_source_tags
 from py_doc_tools.tags.injector import inject_source_tags
 from py_doc_tools.todo.generator import generate_todo_docs
 
@@ -33,6 +34,7 @@ UNKNOWN_COMMAND_MESSAGE = "Unknown command"
 NO_GENERATION_TARGET_MESSAGE = "No generation target selected"
 UNKNOWN_MKDOCS_COMMAND_MESSAGE = "Unknown mkdocs command"
 UNKNOWN_CLEAN_COMMAND_MESSAGE = "Unknown clean command"
+UNKNOWN_TAGS_COMMAND_MESSAGE = "Unknown tags command"
 API_CONFIG_MISSING_MESSAGE = "API configuration is missing"
 
 
@@ -63,6 +65,10 @@ class CliArgs:
 
     clean_command: str | None = None
     target: str | None = None
+
+    tags_command: str | None = None
+    dry_run: bool = False
+    write: bool = False
 
 
 class GenerateCommand(Protocol):
@@ -100,6 +106,9 @@ def dispatch(
 
     if args.command == "clean":
         return _run_clean(args, cfg, console)
+
+    if args.command == "tags":
+        return _run_tags(args, cfg, console)
 
     msg = UNKNOWN_COMMAND_MESSAGE
     raise SystemExit(msg)
@@ -148,7 +157,39 @@ def _build_parser() -> argparse.ArgumentParser:
     clean = subparsers.add_parser("clean", help="Clean generated artifacts.")
     _ = clean.add_argument("target", choices=["api"], help="Cleanup target.")
 
+    tags = subparsers.add_parser("tags", help="Manage generated source tags.")
+    tags_subparsers = tags.add_subparsers(
+        dest="tags_command",
+        required=True,
+    )
+
+    tags_inject = tags_subparsers.add_parser(
+        "inject",
+        help="Inject generated source tags.",
+    )
+    _add_write_mode_options(tags_inject)
+
+    tags_clean = tags_subparsers.add_parser(
+        "clean",
+        help="Remove generated source tags.",
+    )
+    _add_write_mode_options(tags_clean)
+
     return parser
+
+
+def _add_write_mode_options(parser: argparse.ArgumentParser) -> None:
+    mode = parser.add_mutually_exclusive_group(required=False)
+    _ = mode.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview changes without writing files.",
+    )
+    _ = mode.add_argument(
+        "--write",
+        action="store_true",
+        help="Write changes to files.",
+    )
 
 
 def _namespace_to_args(namespace: argparse.Namespace) -> CliArgs:
@@ -178,6 +219,9 @@ def _namespace_to_args(namespace: argparse.Namespace) -> CliArgs:
         strict=_bool_arg(raw, "strict"),
         target=_optional_str_arg(raw, "target"),
         clean_command=_optional_str_arg(raw, "target"),
+        tags_command=_optional_str_arg(raw, "tags_command"),
+        dry_run=_bool_arg(raw, "dry_run"),
+        write=_bool_arg(raw, "write"),
     )
 
 
@@ -241,6 +285,50 @@ def _run_clean(
 
     console.ok(f"Removed API documentation directory: {cfg.api.output_dir}")
     return None
+
+
+def _run_tags(
+    args: CliArgs,
+    cfg: DocToolsConfig,
+    console: Console,
+) -> int | None:
+    if args.tags_command == "inject":
+        return inject_source_tags(
+            _cfg_with_tags_dry_run_override(args, cfg),
+            console,
+        )
+
+    if args.tags_command == "clean":
+        return clean_generated_source_tags(
+            cfg,
+            console,
+            dry_run=_tags_clean_dry_run(args),
+        )
+
+    msg = UNKNOWN_TAGS_COMMAND_MESSAGE
+    raise SystemExit(msg)
+
+
+def _cfg_with_tags_dry_run_override(
+    args: CliArgs,
+    cfg: DocToolsConfig,
+) -> DocToolsConfig:
+    if cfg.tags is None:
+        return cfg
+
+    if args.write:
+        tags = replace(cfg.tags, dry_run=False)
+        return replace(cfg, tags=tags)
+
+    if args.dry_run:
+        tags = replace(cfg.tags, dry_run=True)
+        return replace(cfg, tags=tags)
+
+    return cfg
+
+
+def _tags_clean_dry_run(args: CliArgs) -> bool:
+    return not args.write
 
 
 def _bool_arg(raw: dict[str, object], key: str) -> bool:
