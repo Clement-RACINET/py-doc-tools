@@ -18,22 +18,35 @@ if TYPE_CHECKING:
 
 
 def inject_source_tags(cfg: DocToolsConfig, console: Console) -> int:
-    """CLI-compatible standalone tag injection entry point.
+    """CLI-compatible source tag injection entry point.
 
-    Generated diagnostic tags are injected by diagnostics collectors through
-    `inject_issues`. This function remains as a CLI target.
+    Run diagnostics collection and inject generated source tags when source tag
+    injection is enabled in the diagnostics configuration.
     """
     if cfg.tags is None:
         msg = "tags"
         raise MissingConfigSectionError(msg)
 
-    message = (
-        "No standalone tag injection performed. "
-        "Run diagnostics with source tag injection enabled."
-    )
-    console.info(message)
+    if cfg.diagnostics is None:
+        msg = "diagnostics"
+        raise MissingConfigSectionError(msg)
 
-    return 0
+    if not cfg.diagnostics.inject_source_tags:
+        message = (
+            "Source tag injection was requested, but it is disabled by "
+            "configuration: "
+            "`[tool.py-doc-tools.diagnostics].inject_source_tags = false`. "
+            "No source tags were injected."
+        )
+        console.warn(message)
+        return 0
+
+    from py_doc_tools.diagnostics.generator import (  # noqa: PLC0415
+        generate_diagnostics_docs,
+    )
+
+    return generate_diagnostics_docs(cfg, console)
+
 
 
 def inject_issues(

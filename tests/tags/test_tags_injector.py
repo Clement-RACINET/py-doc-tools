@@ -2,11 +2,17 @@
 
 from __future__ import annotations
 
+import logging
+from dataclasses import replace
 from typing import TYPE_CHECKING, cast
 
 import pytest
 
-from py_doc_tools.config.model import DocToolsConfig, TagsConfig
+from py_doc_tools.config.model import (
+    DiagnosticsConfig,
+    DocToolsConfig,
+    TagsConfig,
+)
 from py_doc_tools.core.console import Console
 from py_doc_tools.core.exceptions import MissingConfigSectionError
 from py_doc_tools.issues.model import DiagnosticIssue
@@ -15,6 +21,7 @@ from py_doc_tools.tags.injector import inject_issues, inject_source_tags
 if TYPE_CHECKING:
     from collections.abc import Callable
     from pathlib import Path
+
 
 
 def _make_config(**kwargs: object) -> DocToolsConfig:
@@ -33,33 +40,126 @@ def _base_config(tmp_path: Path, tags: TagsConfig | None) -> DocToolsConfig:
         tags=tags,
     )
 
+def _diagnostics_config(
+    tmp_path: Path,
+    *,
+    inject_source_tags: bool,
+) -> DiagnosticsConfig:
+    return DiagnosticsConfig(
+        output_dir=tmp_path / "docs" / "diagnostics",
+        ruff_output_file=tmp_path / "docs" / "diagnostics" / "ruff.md",
+        mkdocs_output_file=tmp_path / "docs" / "diagnostics" / "mkdocs.md",
+        enable_ruff=True,
+        enable_mkdocs=False,
+        mkdocs_strict=False,
+        fail_on_ruff=False,
+        fail_on_mkdocs=False,
+        inject_source_tags=inject_source_tags,
+        clean_before_inject=True,
+        clean_legacy_tags=True,
+        ruff_targets=["src"],
+        ruff_exclude_dirs=[],
+        ruff_exclude_files=[],
+    )
 
-def test_inject_source_tags_standalone_entrypoint_is_noop(
+
+def test_inject_source_tags_warns_when_disabled_by_config(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Standalone tag injection warns when disabled by configuration."""
+    called = False
+
+    def fake_generate_diagnostics_docs(
+        cfg: DocToolsConfig,
+        console: Console,
+    ) -> int:
+        nonlocal called
+
+        _ = cfg
+        _ = console
+
+        called = True
+        return 0
+
+    monkeypatch.setattr(
+        "py_doc_tools.diagnostics.generator.generate_diagnostics_docs",
+        fake_generate_diagnostics_docs,
+    )
+
+    tags = TagsConfig(
+        scan_roots=[tmp_path / "src"],
+        exclude_dirs=[],
+        exclude_files=[],
+        generated_prefix="py-doc-tools",
+        dry_run=False,
+        clean_legacy=True,
+    )
+
+    cfg = _base_config(tmp_path, tags)
+    cfg = replace(
+        cfg,
+        enable_diagnostics=True,
+        diagnostics=_diagnostics_config(
+            tmp_path,
+            inject_source_tags=False,
+        ),
+    )
+
+    with caplog.at_level(logging.WARNING):
+        code = inject_source_tags(cfg, Console())
+
+    assert code == 0
+    assert not called
+    assert "Source tag injection was requested" in caplog.text
+    assert "inject_source_tags = false" in caplog.text
+
+
+def test_inject_source_tags_delegates_when_enabled(
+    monkeypatch: pytest.MonkeyPatch,
     tmp_path: Path,
 ) -> None:
-    """Standalone source tag command is retained for CLI compatibility."""
-    src = tmp_path / "src"
-    src.mkdir()
+    """Standalone tag injection delegates to diagnostics generation."""
+    calls: list[DocToolsConfig] = []
 
-    file_path = src / "module.py"
-    original = "# TODO: keep human marker\n"
-    _ = file_path.write_text(original, encoding="utf-8")
+    def fake_generate_diagnostics_docs(
+        cfg: DocToolsConfig,
+        console: Console,
+    ) -> int:
+        _ = console
 
-    cfg = _base_config(
-        tmp_path,
-        TagsConfig(
-            scan_roots=[src],
-            dry_run=False,
-            markers=["TODO"],
-            exclude_dirs=[],
-            exclude_files=[],
+        calls.append(cfg)
+        return 0
+
+    monkeypatch.setattr(
+        "py_doc_tools.diagnostics.generator.generate_diagnostics_docs",
+        fake_generate_diagnostics_docs,
+    )
+
+    tags = TagsConfig(
+        scan_roots=[tmp_path / "src"],
+        exclude_dirs=[],
+        exclude_files=[],
+        generated_prefix="py-doc-tools",
+        dry_run=False,
+        clean_legacy=True,
+    )
+
+    cfg = _base_config(tmp_path, tags)
+    cfg = replace(
+        cfg,
+        enable_diagnostics=True,
+        diagnostics=_diagnostics_config(
+            tmp_path,
+            inject_source_tags=True,
         ),
     )
 
     code = inject_source_tags(cfg, Console())
 
     assert code == 0
-    assert file_path.read_text(encoding="utf-8") == original
+    assert calls == [cfg]
 
 
 def test_inject_issues_dry_run_does_not_modify_file(tmp_path: Path) -> None:

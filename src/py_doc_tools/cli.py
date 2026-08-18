@@ -137,7 +137,11 @@ def _build_parser() -> argparse.ArgumentParser:
     _ = generate_group.add_argument("--readme", action="store_true")
     _ = generate_group.add_argument("--todo", action="store_true")
     _ = generate_group.add_argument("--diagnostics", action="store_true")
-    _ = generate_group.add_argument("--tags", action="store_true")
+    _ = generate_group.add_argument(
+        "--tags",
+        action="store_true",
+        help="Collect diagnostics and inject generated source tags.",
+    )
     _ = generate_group.add_argument("--diagrams", action="store_true")
 
     mkdocs = subparsers.add_parser("mkdocs", help="Run MkDocs commands.")
@@ -157,7 +161,11 @@ def _build_parser() -> argparse.ArgumentParser:
     clean = subparsers.add_parser("clean", help="Clean generated artifacts.")
     _ = clean.add_argument("target", choices=["api"], help="Cleanup target.")
 
-    tags = subparsers.add_parser("tags", help="Manage generated source tags.")
+    tags = subparsers.add_parser(
+        "tags",
+        help="Manage generated diagnostic source tags.",
+    )
+
     tags_subparsers = tags.add_subparsers(
         dest="tags_command",
         required=True,
@@ -165,7 +173,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
     tags_inject = tags_subparsers.add_parser(
         "inject",
-        help="Inject generated source tags.",
+        help="Collect diagnostics and inject generated source tags.",
     )
     _add_write_mode_options(tags_inject)
 
