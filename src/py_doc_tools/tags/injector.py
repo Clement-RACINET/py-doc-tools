@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import ast
 import fnmatch
 from collections import defaultdict
 from typing import TYPE_CHECKING
@@ -46,7 +47,6 @@ def inject_source_tags(cfg: DocToolsConfig, console: Console) -> int:
     )
 
     return generate_diagnostics_docs(cfg, console)
-
 
 
 def inject_issues(
@@ -107,15 +107,31 @@ def inject_issues_in_file(
     prefix: str,
     dry_run: bool,
 ) -> int:
-    """Inject issue tags into one Python source file."""
+    """Inject issue tags into one Python source file.
+
+    Args:
+        file_path: Python source file to update.
+        issues: Diagnostic issues localized in the file.
+        prefix: Generated tag prefix.
+        dry_run: If ``True``, compute insertions without writing the file.
+
+    Returns:
+        Number of injected tags.
+
+    Raises:
+        No exception is intentionally propagated. Unreadable files are skipped to
+        keep diagnostics generation robust.
+    """
     if not file_path.exists():
         return 0
 
     try:
-        lines = file_path.read_text(encoding="utf-8").splitlines(keepends=True)
+        source = file_path.read_text(encoding="utf-8")
     except OSError:
         return 0
 
+    lines = source.splitlines(keepends=True)
+    docstring_ranges = _collect_docstring_ranges(source)
     insertions: dict[int, list[str]] = defaultdict(list)
 
     for issue in sorted(
@@ -123,7 +139,11 @@ def inject_issues_in_file(
         key=lambda item: (item.line_number or 1, item.code, item.message),
     ):
         line_number = issue.line_number or 1
-        index = max(0, min(line_number - 1, len(lines)))
+        requested_index = max(0, min(line_number - 1, len(lines)))
+        index = _safe_insertion_index(
+            requested_index=requested_index,
+            docstring_ranges=docstring_ranges,
+        )
         indent = _indent_for_index(lines, index)
         tag = render_generated_tag(issue, prefix=prefix)
         rendered_line = f"{indent}{tag}\n"
@@ -167,6 +187,91 @@ def _indent_for_index(lines: list[str], index: int) -> str:
     safe_index = min(index, len(lines) - 1)
     line = lines[safe_index]
     return line[: len(line) - len(line.lstrip())]
+
+
+def _collect_docstring_ranges(source: str) -> list[tuple[int, int]]:
+    """Collect line ranges occupied by module, class, and function docstrings.
+
+    Args:
+        source: Python source code.
+
+    Returns:
+        List of inclusive-exclusive line ranges as zero-based indexes. Each
+        range is ``(start_index, end_index)``.
+    """
+    try:
+        tree = ast.parse(source)
+    except SyntaxError:
+        return []
+
+    ranges: list[tuple[int, int]] = []
+
+    module_range = _docstring_range_from_body(tree.body)
+    if module_range is not None:
+        ranges.append(module_range)
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ClassDef | ast.FunctionDef | ast.AsyncFunctionDef):
+            node_range = _docstring_range_from_body(node.body)
+            if node_range is not None:
+                ranges.append(node_range)
+
+    return ranges
+
+
+def _docstring_range_from_body(body: list[ast.stmt]) -> tuple[int, int] | None:
+    """Return the docstring line range for an AST body, if any.
+
+    Args:
+        body: AST statement body of a module, class, or function.
+
+    Returns:
+        Inclusive-exclusive zero-based line range of the docstring, or ``None``
+        when the body has no docstring.
+    """
+    if not body:
+        return None
+
+    first = body[0]
+
+    if not isinstance(first, ast.Expr):
+        return None
+
+    value = first.value
+
+    if not isinstance(value, ast.Constant) or not isinstance(value.value, str):
+        return None
+
+    end_line = first.end_lineno
+    if end_line is None:
+        return None
+
+    start_index = max(0, first.lineno - 1)
+    end_index = max(start_index + 1, end_line)
+
+    return start_index, end_index
+
+
+def _safe_insertion_index(
+    *,
+    requested_index: int,
+    docstring_ranges: list[tuple[int, int]],
+) -> int:
+    """Return a safe insertion index outside Python docstrings.
+
+    Args:
+        requested_index: Zero-based target insertion index.
+        docstring_ranges: Inclusive-exclusive zero-based docstring ranges.
+
+    Returns:
+        ``requested_index`` when it is outside a docstring, otherwise the start
+        index of the containing docstring.
+    """
+    for start_index, end_index in docstring_ranges:
+        if start_index <= requested_index < end_index:
+            return start_index
+
+    return requested_index
 
 
 def _is_allowed_file(cfg: DocToolsConfig, file_path: Path) -> bool:

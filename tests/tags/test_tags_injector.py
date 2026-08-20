@@ -23,7 +23,6 @@ if TYPE_CHECKING:
     from pathlib import Path
 
 
-
 def _make_config(**kwargs: object) -> DocToolsConfig:
     config_cls = cast("Callable[..., DocToolsConfig]", DocToolsConfig)
     return config_cls(**kwargs)
@@ -39,6 +38,7 @@ def _base_config(tmp_path: Path, tags: TagsConfig | None) -> DocToolsConfig:
         enable_tags=tags is not None,
         tags=tags,
     )
+
 
 def _diagnostics_config(
     tmp_path: Path,
