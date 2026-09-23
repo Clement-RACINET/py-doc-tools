@@ -714,7 +714,11 @@ def _emit_download_tree_markdown(
     show_preview: bool,
     examples_cfg: ExamplesConfig,
 ) -> None:
-    """Append a Markdown download tree to the given lines."""
+    """Append a Markdown download tree to the given lines.
+
+    Image previews use Markdown image syntax so that MkDocs can rewrite
+    relative asset URLs according to the final page URL.
+    """
     pad = "    " * level
 
     for dirname in sorted(node.children, key=str.lower):
@@ -738,26 +742,37 @@ def _emit_download_tree_markdown(
 
         if show_preview and file_info.extension in IMAGE_EXTENSIONS:
             preview_pad = "    " * (level + 1)
+
+            # Escape characters that have a special meaning in Markdown
+            # alternative text.
+            alt_text = (
+                file_info.display.replace("\\", "\\\\")
+                .replace("[", "\\[")
+                .replace("]", "\\]")
+            )
+
             style = "".join(
                 [
                     "display:block; ",
-                    f"max-width: {examples_cfg.preview_max_width_px}px; ",
-                    "width: 100%; ",
-                    "height: auto; ",
-                    "border: 1px solid #ddd; ",
-                    "border-radius: 8px; ",
-                    "margin-top: 6px;",
-                ],
-            )
-            image_html = "".join(
-                [
-                    f'{preview_pad}<img src="{file_info.url}" ',
-                    f'alt="{file_info.display}" style="{style}" />',
+                    f"max-width:{examples_cfg.preview_max_width_px}px; ",
+                    "width:100%; ",
+                    "height:auto; ",
+                    "border:1px solid #ddd; ",
+                    "border-radius:8px; ",
+                    "margin-top:6px;",
                 ],
             )
 
-            lines.append(f"{preview_pad}<br>")
-            lines.append(image_html)
+            # Important: keep the image itself in Markdown syntax.
+            # MkDocs will then rewrite the relative URL for directory URLs.
+            image_markdown = "".join(
+                [
+                    f"{preview_pad}![{alt_text}]({file_info.url})",
+                    f'{{ style="{style}" loading="lazy" }}',
+                ],
+            )
+
+            lines.append(image_markdown)
 
 
 def _file_emoji(file_name: str) -> str:

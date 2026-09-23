@@ -1,0 +1,198 @@
+# =============================================================================
+# Python
+# =============================================================================
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyd
+*.so
+
+# Compiled native extensions
+*.dll
+*.dylib
+
+
+# =============================================================================
+# Python packaging
+# =============================================================================
+
+build/
+dist/
+wheels/
+*.egg-info/
+.eggs/
+*.egg
+pip-wheel-metadata/
+
+# Hatch
+.hatch/
+.hatch_build/
+
+# PyInstaller
+*.manifest
+*.spec
+
+
+# =============================================================================
+# Virtual environments and Pixi
+# =============================================================================
+
+.pixi/
+.venv/
+venv/
+env/
+ENV/
+virtualenv/
+
+# Environment variables and local secrets
+.env
+.env.*
+!.env.example
+.python-version
+
+
+# =============================================================================
+# Tests and coverage
+# =============================================================================
+
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+coverage.json
+htmlcov/
+.pytest_tmp/
+test-results/
+junit.xml
+
+# Hypothesis
+.hypothesis/
+
+# Tox / Nox
+.tox/
+.nox/
+
+
+# =============================================================================
+# Linters, formatters and type checkers
+# =============================================================================
+
+.ruff_cache/
+.mypy_cache/
+.pyright/
+.pytype/
+.dmypy.json
+dmypy.json
+
+# Profiling
+*.prof
+*.lprof
+
+
+# =============================================================================
+# Documentation builds
+# =============================================================================
+
+# Generated MkDocs website
+docs/build/
+site/
+
+# MkDocs cache/plugins
+.cache/
+.mkdocs_cache/
+
+# Generated documentation archives
+docs/*.zip
+docs/*.tar.gz
+
+
+# =============================================================================
+# Generated project reports
+# =============================================================================
+
+result.txt
+structure_repo.html
+structure_repo.json
+structure_repo.md
+structure_repo.yaml
+structure_repo.yml
+
+
+# =============================================================================
+# Logs and temporary files
+# =============================================================================
+
+*.log
+*.tmp
+*.temp
+*.bak
+*.old
+*.orig
+*.rej
+*.swp
+*.swo
+*~
+
+tmp/
+temp/
+.cache/
+
+
+# =============================================================================
+# IDEs and editors
+# =============================================================================
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# PyCharm / IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Visual Studio
+.vs/
+
+# Eclipse
+.project
+.pydevproject
+.settings/
+
+# Jupyter
+.ipynb_checkpoints/
+
+
+# =============================================================================
+# Operating systems
+# =============================================================================
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Linux
+.directory
+.Trash-*/
+
+
+# =============================================================================
+# Local tools and miscellaneous
+# =============================================================================
+
+.python_history
+.coverage_cache/
+node_modules/
