@@ -1,29 +1,35 @@
 # py-doc-tools
 
-`py-doc-tools` is a small, typed and configurable documentation tooling package for Python projects using MkDocs.
+`py-doc-tools` is a typed and configurable documentation generator for Python projects using MkDocs.
 
-It provides a single CLI, `pydocs`, to generate API documentation pages, inject generated navigation blocks into `mkdocs.yml`, run coverage reports, and execute MkDocs commands.
+It provides a single CLI, `pydocs`, to generate and maintain:
 
-The package is designed to be reused across several Python repositories with a shared documentation workflow.
+- API documentation with `mkdocstrings`;
+- examples with downloadable inputs, outputs and image previews;
+- coverage reports;
+- TODO/FIXME reports;
+- Ruff and MkDocs diagnostics;
+- class diagrams;
+- README pages;
+- generated MkDocs navigation.
+
+Configuration is read from the consuming project's `pyproject.toml`.
 
 ---
 
 ## Features
 
-Current V1 features:
-
-- Generate MkDocs API reference pages from Python packages.
-- Generate `mkdocstrings`-compatible Markdown pages.
-- Inject generated API navigation into `mkdocs.yml` between explicit markers.
-- Generate HTML coverage reports with `pytest-cov`.
-- Run `mkdocs build`.
-- Run `mkdocs serve`.
-- Read configuration from `pyproject.toml`.
-- Resolve paths from the project root.
-- Provide a typed and testable codebase.
-- Support Python 3.12.
-- Keep console output clean and CI-friendly.
-
+- Generate API reference pages from Python packages.
+- Generate example pages from files or directories.
+- Copy example assets while preserving their directory structure.
+- Display image previews and downloadable files.
+- Generate coverage, diagnostics, TODO and class-diagram pages.
+- Inject navigation blocks into `mkdocs.yml`.
+- Run `mkdocs build` and `mkdocs serve`.
+- Inject and clean generated source tags.
+- Support nested packages and example directories.
+- Provide typed, tested and CI-friendly tooling.
+- Support Python 3.12 and later.
 
 ---
 
@@ -35,9 +41,7 @@ Current V1 features:
 Python >= 3.12
 ```
 
-The package itself has no required runtime dependency for the V1 core.
-
-However, depending on the commands you run in the consuming project, you should install:
+The consuming project should install the tools needed by its documentation workflow:
 
 ```text
 mkdocs
@@ -45,255 +49,259 @@ mkdocstrings
 mkdocstrings-python
 pytest
 pytest-cov
+ruff
 ```
 
-These tools are intentionally expected to be installed by the consuming project. This avoids dependency conflicts between repositories.
+Optional features may require additional MkDocs plugins or diagram tools.
+
+### Image preview requirement
+
+Generated example previews use Markdown attributes to control image size and layout.
+
+Add `attr_list` to the consuming project's `mkdocs.yml`:
+
+```yaml
+markdown_extensions:
+  - attr_list
+```
+
+If `markdown_extensions` already exists, add `attr_list` to the existing list.
+
+Example:
+
+```yaml
+markdown_extensions:
+  - admonition
+  - attr_list
+  - pymdownx.details
+  - pymdownx.superfences
+```
+
+Without `attr_list`, images can still be linked, but preview attributes such as the maximum width will not be interpreted correctly.
 
 ---
 
 ## Installation
 
-### Local editable installation
+### From GitLab
 
-During development, from a consuming project:
-
-```toml
-[pypi-dependencies]
-py-doc-tools = { path = "C:/Users/cleme/Documents/GitLab_Perso/dev-tools-cr/python/py-doc-tools", editable = true }
-```
-
-Or inside a Pixi feature:
+With Pixi:
 
 ```toml
 [feature.dev.pypi-dependencies]
-py-doc-tools = { path = "C:/Users/cleme/Documents/GitLab_Perso/dev-tools-cr/python/py-doc-tools", editable = true }
+py-doc-tools = {
+    git = "https://gitlab.com/dev-tools-cr/python/py-doc-tools.git",
+    branch = "main"
+}
 ```
 
-### Git installation
-
-Once pushed to GitLab:
+### Local editable installation
 
 ```toml
-[pypi-dependencies]
-py-doc-tools = { git = "https://gitlab.com/dev-tools-cr/python/py-doc-tools.git", branch = "main" }
+[feature.dev.pypi-dependencies]
+py-doc-tools = {
+    path = "../py-doc-tools",
+    editable = true
+}
+```
+
+The dependency can also be declared under `[pypi-dependencies]` when Pixi features are not used.
+
+---
+
+## Quick start
+
+### 1. Install the required documentation tools
+
+Example Pixi configuration:
+
+```toml
+[feature.dev.dependencies]
+mkdocs = ">=1.6,<2"
+mkdocstrings = ">=1,<2"
+mkdocstrings-python = ">=2,<3"
+pytest = ">=9,<10"
+pytest-cov = ">=7,<8"
+ruff = "*"
+
+[feature.dev.pypi-dependencies]
+py-doc-tools = {
+    git = "https://gitlab.com/dev-tools-cr/python/py-doc-tools.git",
+    branch = "main"
+}
+```
+
+### 2. Configure `mkdocs.yml`
+
+```yaml
+site_name: My Project
+
+docs_dir: docs/src
+site_dir: docs/build/site
+
+markdown_extensions:
+  - attr_list
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths:
+            - src
+
+nav:
+  - Home: index.md
+
+  - API:
+      # --- AUTOGEN_API_START ---
+      # --- AUTOGEN_API_END ---
+
+  - Examples:
+      # --- AUTOGEN_EXAMPLES_START ---
+      # --- AUTOGEN_EXAMPLES_END ---
+```
+
+The marker lines must remain in the file. Content between them is generated automatically.
+
+### 3. Configure `pyproject.toml`
+
+```toml
+[tool.py-doc-tools]
+docs_dir = "docs"
+docs_src_dir = "docs/src"
+mkdocs_config = "mkdocs.yml"
+packages = ["my_package"]
+
+enable_api = true
+enable_examples = true
+enable_coverage = false
+enable_readme = false
+enable_todo = true
+enable_diagnostics = true
+enable_tags = false
+enable_diagrams = false
+
+use_emojis = true
+console_emojis = false
+verbose = false
+```
+
+### 4. Generate and serve the documentation
+
+```bash
+pydocs generate --all
+mkdocs serve
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8000/
 ```
 
 ---
 
 ## CLI
 
-The package exposes the `pydocs` command.
+Display the available commands:
 
 ```bash
 pydocs --help
 ```
 
-### Generate API documentation
+### Generate documentation
 
-```bash
-pydocs generate --api
-```
-
-This command:
-
-1. Scans configured Python packages.
-2. Generates Markdown pages under the configured API output directory.
-3. Creates `mkdocstrings` directives.
-4. Injects the generated navigation block into `mkdocs.yml`.
-
----
-
-### Generate coverage report
-
-```bash
-pydocs generate --coverage
-```
-
-This command runs:
-
-```bash
-python -m pytest --cov=<package> --cov-report html:<output_dir>
-```
-
-using the configured package and output directory.
-
----
-
-### Run all enabled generators
+Generate all enabled sections:
 
 ```bash
 pydocs generate --all
 ```
 
-This command runs every enabled generator from the configuration.
-
-For V1, this can include:
-
-- API documentation generation;
-- coverage generation;
-- `mkdocs build`.
-
----
-
-### Run MkDocs build
-
-```bash
-pydocs mkdocs build
-```
-
-Strict mode:
-
-```bash
-pydocs mkdocs build --strict
-```
-
----
-
-### Run MkDocs serve
-
-```bash
-pydocs mkdocs serve
-```
-
----
-
-### Clean generated API documentation
-
-```bash
-pydocs clean api
-```
-
----
-
-### Use a custom project root
-
-By default, `pydocs` uses the current directory as the project root.
-
-You can override it:
-
-```bash
-pydocs --root path/to/project generate --api
-```
-
-Verbose mode:
-
-```bash
-pydocs --verbose generate --api
-```
-
----
-
-## Configuration
-
-Configuration is read from the consuming project's `pyproject.toml`.
-
-The root table is:
-
-```toml
-[tool.py-doc-tools]
-```
-
-### Minimal configuration
-
-```toml
-[tool.py-doc-tools]
-docs_dir = "docs"
-docs_src_dir = "docs"
-mkdocs_config = "mkdocs.yml"
-packages = ["my_package"]
-
-enable_api = true
-enable_coverage = false
-
-use_emojis = false
-console_emojis = false
-verbose = false
-
-[tool.py-doc-tools.api]
-output_dir = "docs/api"
-nav_start_marker = "# --- AUTOGEN_API_START ---"
-nav_end_marker = "# --- AUTOGEN_API_END ---"
-clean_output_dir = true
-overview_enabled = false
-folder_intro_enabled = false
-exclude_dirs = [
-    "__pycache__",
-    ".pytest_cache",
-    ".git",
-    ".pixi",
-]
-exclude_files = [
-    "__init__.py",
-    "test_*.py",
-]
-```
-
----
-
-## MkDocs markers
-
-`py-doc-tools` injects generated navigation between explicit markers.
-
-Example `mkdocs.yml`:
-
-```yaml
-site_name: My Project
-
-nav:
-  - Home: index.md
-  - API:
-    # --- AUTOGEN_API_START ---
-    - My Package:
-      - Client: api/my_package/client.md
-      - Models: api/my_package/models.md
-    # --- AUTOGEN_API_END ---
-
-```
-
-After running:
+Generate individual sections:
 
 ```bash
 pydocs generate --api
+pydocs generate --examples
+pydocs generate --coverage
+pydocs generate --todo
+pydocs generate --diagnostics
+pydocs generate --diagrams
+pydocs generate --readme
 ```
 
-the block between the markers is replaced.
+Available options depend on the installed version. Use:
 
-Example generated output:
-
-```yaml
-site_name: My Project
-
-nav:
-  - Home: index.md
-  - API:
-      # --- AUTOGEN_API_START ---
-      - My Package:
-          - Client: api/my_package/client.md
-          - Models: api/my_package/models.md
-    # --- AUTOGEN_API_END ---
+```bash
+pydocs generate --help
 ```
 
-The markers must remain in the file.
+### MkDocs
+
+```bash
+pydocs mkdocs build
+pydocs mkdocs build --strict
+pydocs mkdocs serve
+```
+
+### Custom project root
+
+```bash
+pydocs --root path/to/project generate --all
+```
+
+### Verbose mode
+
+```bash
+pydocs --verbose generate --all
+```
 
 ---
 
-## API documentation generation
+## API documentation
 
-For each configured package, `py-doc-tools` scans Python files and generates Markdown pages containing `mkdocstrings` directives.
+Basic configuration:
 
-For example, this file:
+```toml
+[tool.py-doc-tools.api]
+output_dir = "docs/src/api"
 
-```text
-my_package/client.py
+nav_start_marker = "# --- AUTOGEN_API_START ---"
+nav_end_marker = "# --- AUTOGEN_API_END ---"
+
+clean_output_dir = true
+overview_enabled = true
+
+folder_intro_enabled = true
+folder_intro_filename = "__doc__.md"
+
+module_pre_suffix = ".pre.md"
+module_post_suffix = ".post.md"
+
+exclude_dirs = [
+    "__pycache__",
+    ".git",
+    ".pixi",
+    ".venv",
+    "tests",
+    "docs",
+    "build",
+    "dist",
+]
+
+exclude_files = [
+    "__init__.py",
+    "*.pyc",
+]
 ```
 
-generates:
+For a module such as:
 
 ```text
-docs/api/my_package/client.md
+src/my_package/client.py
 ```
 
-with content similar to:
+the generator creates a page containing a `mkdocstrings` directive:
 
 ```markdown
 # Client
@@ -301,88 +309,105 @@ with content similar to:
 ::: my_package.client
 ```
 
----
+### Folder introductions
 
-## Optional API overview
-
-Enable an API overview page:
-
-```toml
-[tool.py-doc-tools.api]
-overview_enabled = true
-```
-
-This creates:
+When enabled, folders can provide an introduction file:
 
 ```text
-docs/api/api_overview.md
+src/my_package/__doc__.md
+src/my_package/subpackage/__doc__.md
 ```
 
-and adds it to the generated navigation.
+### Module pre/post content
 
----
-
-## Optional folder introductions
-
-Folder introductions can be enabled:
-
-```toml
-[tool.py-doc-tools.api]
-folder_intro_enabled = true
-folder_intro_filename = "__doc__.md"
-```
-
-When enabled, each package or subfolder can provide a local Markdown intro file:
-
-```text
-my_package/__doc__.md
-my_package/submodule/__doc__.md
-```
-
-These files are used to generate intro pages in the API documentation.
-
----
-
-## Optional module pre/post content
-
-Each Python module can have optional companion Markdown files:
+Additional content can be placed around the generated API directive:
 
 ```text
 client.pre.md
-client.post.md
-```
-
-For:
-
-```text
 client.py
-```
-
-`client.pre.md` is inserted before the `mkdocstrings` directive, and `client.post.md` is inserted after it.
-
-Example:
-
-```text
-my_package/client.py
-my_package/client.pre.md
-my_package/client.post.md
-```
-
-Generated page:
-
-```markdown
-# Client
-
-Content from client.pre.md
-
-::: my_package.client
-
-Content from client.post.md
+client.post.md
 ```
 
 ---
 
-## Coverage configuration
+## Examples documentation
+
+Directory mode generates one page for each detected example directory.
+
+Recommended configuration:
+
+```toml
+[tool.py-doc-tools.examples]
+source_dir = "examples"
+output_dir = "docs/src/examples"
+assets_dir = "docs/src/examples/assets"
+
+nav_start_marker = "# --- AUTOGEN_EXAMPLES_START ---"
+nav_end_marker = "# --- AUTOGEN_EXAMPLES_END ---"
+
+mode = "directory"
+overview_enabled = true
+clean_output_dir = true
+
+copy_assets = true
+show_image_previews = true
+preview_max_width_px = 800
+
+skip_dirs = [
+    "__pycache__",
+    ".git",
+    ".pixi",
+    ".pytest_cache",
+]
+
+skip_files = [
+    "*.pyc",
+    "*.pyo",
+]
+
+asset_extensions = [
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".svg",
+    ".webp",
+    ".pdf",
+]
+```
+
+Example layout:
+
+```text
+examples/
+└── demo/
+    ├── demo.py
+    ├── README.md
+    ├── demo.inputs/
+    │   └── input.csv
+    └── demo.outputs/
+        ├── result.json
+        └── plot.png
+```
+
+The generated page includes:
+
+- the example description;
+- the main script and execution command;
+- downloadable input and output files;
+- reduced image previews;
+- preserved nested output directories.
+
+Remember to enable `attr_list` in `mkdocs.yml`:
+
+```yaml
+markdown_extensions:
+  - attr_list
+```
+
+---
+
+## Coverage
 
 Enable coverage generation:
 
@@ -392,9 +417,14 @@ enable_coverage = true
 
 [tool.py-doc-tools.coverage]
 package = "my_package"
-output_dir = "docs/coverage"
+output_dir = "docs/build/coverage"
+page_file = "docs/src/coverage-report.md"
+
 branch = true
 quiet = true
+
+nav_enabled = true
+inject_backlinks = true
 ```
 
 Run:
@@ -403,113 +433,156 @@ Run:
 pydocs generate --coverage
 ```
 
-If `package` is not provided, the first package from `packages` is used.
+The consuming project must provide `pytest` and `pytest-cov`.
 
 ---
 
-## Complete example for a simple project
+## TODO and diagnostics
+
+### TODO/FIXME report
 
 ```toml
-[tool.py-doc-tools]
-docs_dir = "docs"
-docs_src_dir = "docs"
-mkdocs_config = "mkdocs.yml"
-packages = ["my_package"]
+[tool.py-doc-tools.todo]
+output_file = "docs/src/todo.md"
 
-use_emojis = false
-console_emojis = false
-verbose = false
-
-enable_api = true
-enable_coverage = true
-
-[tool.py-doc-tools.api]
-output_dir = "docs/api"
-nav_start_marker = "# --- AUTOGEN_API_START ---"
-nav_end_marker = "# --- AUTOGEN_API_END ---"
-clean_output_dir = true
-overview_enabled = false
-folder_intro_enabled = false
-exclude_dirs = [
-    "__pycache__",
-    ".pytest_cache",
-    ".git",
-    ".pixi",
-    ".venv",
-    "venv",
-    "build",
-    "dist",
-]
-exclude_files = [
-    "__init__.py",
-    "test_*.py",
+scan_roots = [
+    "src",
+    "tests",
+    "examples",
 ]
 
-[tool.py-doc-tools.coverage]
-package = "my_package"
-output_dir = "docs/coverage"
-branch = true
-quiet = true
+markers = [
+    "TODO",
+    "FIXME",
+    "BUG",
+    "HACK",
+]
+
+mode = "sections"
+```
+
+### Ruff and MkDocs diagnostics
+
+```toml
+[tool.py-doc-tools.diagnostics]
+output_dir = "docs/src/diagnostics"
+ruff_output_file = "docs/src/diagnostics/ruff.md"
+mkdocs_output_file = "docs/src/diagnostics/mkdocs.md"
+
+enable_ruff = true
+enable_mkdocs = true
+mkdocs_strict = false
+
+fail_on_ruff = false
+fail_on_mkdocs = false
 ```
 
 ---
 
-## Example Pixi tasks for consuming projects
+## Class diagrams
+
+Enable class-diagram generation:
 
 ```toml
-[tasks]
-docs-api = "pydocs generate --api"
-docs-coverage = "pydocs generate --coverage"
-docs-generate = "pydocs generate --all"
-docs-build = "pydocs mkdocs build"
-docs-build-strict = "pydocs mkdocs build --strict"
-docs-serve = "pydocs mkdocs serve"
-docs-clean-api = "pydocs clean api"
+[tool.py-doc-tools]
+enable_diagrams = true
+
+[tool.py-doc-tools.diagrams]
+output_file = "docs/src/diagrams/classes.md"
+
+scan_roots = [
+    "src/my_package",
+]
+
+include_private = false
+```
+
+Diagram generation may require optional tools depending on the configured output format.
+
+---
+
+## Source tags
+
+Generated tags can associate TODO or diagnostic entries with source files.
+
+Example configuration:
+
+```toml
+[tool.py-doc-tools.tags]
+scan_roots = [
+    "src",
+    "tests",
+    "examples",
+]
+
+markers = [
+    "TODO",
+    "FIXME",
+    "BUG",
+    "HACK",
+]
+
+generated_prefix = "py-doc-tools"
+dry_run = false
+```
+
+Common commands:
+
+```bash
+pydocs tags inject
+pydocs tags inject --write
+pydocs tags inject --dry-run
+
+pydocs tags clean
+pydocs tags clean --write
+pydocs tags clean --dry-run
+```
+
+---
+
+## Pixi tasks
+
+Example tasks for a consuming project:
+
+```toml
+[feature.dev.tasks]
+docs = "pydocs generate --all"
+docs-build = "mkdocs build"
+docs-build-strict = "mkdocs build --strict"
+docs-serve = "pydocs generate --all && mkdocs serve"
+
+docs-tags-inject = "pydocs tags inject --write"
+docs-tags-clean = "pydocs tags clean --write"
 ```
 
 Usage:
 
 ```bash
-pixi run docs-api
-pixi run docs-build
-pixi run docs-serve
+pixi run -e dev docs
+pixi run -e dev docs-build
+pixi run -e dev docs-serve
 ```
 
 ---
 
 ## Development
 
-Install the development environment:
+Install the environment:
 
 ```bash
 pixi install
 ```
 
-Run formatting:
-
-```bash
-pixi run fmt
-```
-
-Run linting:
-
-```bash
-pixi run lint
-```
-
-Run typing checks:
-
-```bash
-pixi run typecheck
-```
-
-Run tests:
+Run the checks:
 
 ```bash
 pixi run tests
+pixi run lint
+pixi run format-check
+pixi run typecheck
 ```
 
-Run the full check pipeline:
+Run the complete validation pipeline:
 
 ```bash
 pixi run check
@@ -517,78 +590,52 @@ pixi run check
 
 ---
 
-## Quality gates
-
-The project is developed with:
-
-- Python 3.12;
-- Ruff formatting;
-- Ruff linting;
-- mypy strict mode;
-- pytest;
-- pytest-cov;
-- branch coverage.
-
-Current quality target:
-
-```text
-coverage >= 90%
-```
-
-Typical current coverage is above 95%.
-
----
-
 ## Repository structure
 
 ```text
 py-doc-tools/
-├── pyproject.toml
-├── pixi.toml
-├── README.md
+├── docs/
+│   ├── src/
+│   └── build/
 ├── src/
 │   └── py_doc_tools/
-│       ├── __init__.py
-│       ├── __main__.py
-│       ├── cli.py
 │       ├── api/
 │       ├── config/
 │       ├── core/
 │       ├── coverage/
+│       ├── diagnostics/
+│       ├── diagrams/
+│       ├── examples/
 │       ├── mkdocs/
-│       └── pipeline/
-└── tests/
+│       ├── pipeline/
+│       ├── readme/
+│       ├── tags/
+│       └── todo/
+├── tests/
+├── mkdocs.yml
+├── pixi.toml
+├── pyproject.toml
+└── README.md
 ```
+
+Generated documentation under `docs/build/` should normally be excluded from Git.
 
 ---
 
 ## Design principles
 
-`py-doc-tools` follows a few important principles:
-
-1. **Project-agnostic behavior**  
-   No dependency on a specific repository layout beyond explicit configuration.
-
-2. **Configuration over hardcoded paths**  
-   All project-specific behavior should be defined in `pyproject.toml`.
-
-3. **Typed implementation**  
-   The codebase is designed to pass strict typing checks.
-
-4. **Small composable commands**  
-   CLI commands should be clear rather than overly short.
-
-5. **No hidden source modification by default**  
-   V1 does not modify source files.
-
-6. **CI-friendly output**  
-   Console output is intentionally simple and stable.
+- **Configuration over hardcoded paths**
+- **Project-independent behavior**
+- **Typed and testable implementation**
+- **Deterministic generated files**
+- **Explicit MkDocs navigation markers**
+- **CI-friendly commands and output**
+- **No source modification unless explicitly requested**
 
 ---
 
 ## License
 
-This project is distributed under the MIT License with an additional
-no-endorsement clause.
+This project is distributed under the X11 License.
 
 See [`LICENSE`](LICENSE) for details.
