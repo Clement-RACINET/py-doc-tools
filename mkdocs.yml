@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 C. RACINET
+#
+# SPDX-License-Identifier: X11
+
 site_name: py-doc-tools
 site_description: Configurable MkDocs documentation generation tools for Python projects.
 site_author: Clément RACINET

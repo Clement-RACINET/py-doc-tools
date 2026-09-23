@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 C. RACINET
+//
+// SPDX-License-Identifier: X11
+
 function setColorMode(mode) {
     // Switch between light/dark theme. `mode` is a string value of either 'dark' or 'light'.
     var hljs_light = document.getElementById('hljs-light'),

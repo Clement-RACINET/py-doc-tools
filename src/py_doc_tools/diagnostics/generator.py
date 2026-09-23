@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 C. RACINET
+#
+# SPDX-License-Identifier: X11
+
 """Diagnostics extraction, reporting and source tag injection."""
 
 from __future__ import annotations

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 C. RACINET
+#
+# SPDX-License-Identifier: X11
+
 """Tests for coverage HTML directory configuration loading."""
 
 from __future__ import annotations

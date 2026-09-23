@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 C. RACINET
+#
+# SPDX-License-Identifier: X11
+
 """Source tag injection from normalized diagnostic issues."""
 
 from __future__ import annotations

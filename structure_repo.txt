@@ -157,12 +157,15 @@ py-doc-tools
 │   │   └── test_readme_generator.py
 │   ├── tags
 │   │   ├── __init__.py
+│   │   ├── test_generated.py
 │   │   ├── test_tags_cleaner.py
-│   │   └── test_tags_injector.py
+│   │   ├── test_tags_injector.py
+│   │   └── test_tags_injector_docstrings.py
 │   ├── todo
 │   │   ├── __init__.py
 │   │   └── test_todo_generator.py
 │   └── __init__.py
+├── annotate_missing_copyright.py
 ├── LICENSE
 ├── mkdocs.yml
 ├── pixi.lock
@@ -170,4 +173,5 @@ py-doc-tools
 ├── pyproject.toml
 ├── README.md
 ├── result.txt
+├── reuse.toml
 └── structure_repo.txt

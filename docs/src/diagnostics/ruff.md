@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 C. RACINET
+
+SPDX-License-Identifier: X11
+-->
+
 # Ruff diagnostics
 
 Return code: `0`

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 C. RACINET
+#
+# SPDX-License-Identifier: X11
+
 """Typed configuration models for py-doc-tools."""
 
 from __future__ import annotations

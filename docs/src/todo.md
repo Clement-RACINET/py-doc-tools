@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 C. RACINET
+
+SPDX-License-Identifier: X11
+-->
+
 # TODO
 
 Dernière mise à jour : <!-- AUTOGEN:DATE --> *2026-08-17 14:41 UTC*

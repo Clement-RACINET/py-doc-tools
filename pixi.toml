@@ -13,6 +13,7 @@ py-doc-tools = { path = ".", editable = true }
 [feature.dev.dependencies]
 pytest = ">=9.1.1,<10"
 pytest-cov = "*"
+reuse = "*"
 ruff = "*"
 mypy = "*"
 mkdocs = "*"

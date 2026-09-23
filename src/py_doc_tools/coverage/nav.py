@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 C. RACINET
+#
+# SPDX-License-Identifier: X11
+
 """MkDocs navigation helpers for coverage reports."""
 
 from __future__ import annotations

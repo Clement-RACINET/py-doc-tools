@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2026 C. RACINET
+
+SPDX-License-Identifier: X11
+-->
+
 # py-doc-tools
 
 `py-doc-tools` fournit des outils configurables pour générer et maintenir une documentation MkDocs pour des projets Python.

@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2026 C. RACINET
+#
+# SPDX-License-Identifier: X11
+
 """Additional branch tests for CLI dispatch."""
 
 from __future__ import annotations

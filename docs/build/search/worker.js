@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 C. RACINET
+//
+// SPDX-License-Identifier: X11
+
 var base_path = 'function' === typeof importScripts ? '.' : '/search/';
 var allowSearch = false;
 var index;

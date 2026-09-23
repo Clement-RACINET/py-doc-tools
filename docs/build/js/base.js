@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 C. RACINET
+//
+// SPDX-License-Identifier: X11
+
 function getSearchTerm() {
     var sPageURL = window.location.search.substring(1);
     var sURLVariables = sPageURL.split('&');

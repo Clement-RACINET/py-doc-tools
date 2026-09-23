@@ -1,8 +1,7 @@
-/**
- * lunr - http://lunrjs.com - A bit like Solr, but much smaller and not as bright - 2.3.9
- * Copyright (C) 2020 Oliver Nightingale
- * @license MIT
- */
+// Copyright (C) 2020 Oliver Nightingale
+// SPDX-FileCopyrightText: 2026 C. RACINET
+//
+// SPDX-License-Identifier: X11
 
 ;(function(){
 
